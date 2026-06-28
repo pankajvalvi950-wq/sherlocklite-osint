@@ -37,12 +37,12 @@ If you want to clone this project and run it on your machine, follow these steps
    cd sherlocklite-osint
 
    
-1. Install requirements:
+2. Install requirements:
 
 Bash
 pip install -r requirements.txt
 
-2. Run the Streamlit application
+3. Run the Streamlit application
 
 Bash
 streamlit run app.py
