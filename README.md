@@ -6,6 +6,7 @@ Sovereign Cyber Panel is an advanced **Open Source Intelligence (OSINT)** dashbo
 
 ---
 
+
 ## 🔍 Modules Included
 
 ### 1. 👤 Username Threat Scanner
@@ -14,6 +15,7 @@ Sovereign Cyber Panel is an advanced **Open Source Intelligence (OSINT)** dashbo
 * **Insight:** Helps identify a target's online presence and shadow accounts within seconds.
 
 ---
+
 
 ## 🛠️ Tech Stack & Architecture
 
@@ -24,6 +26,7 @@ Sovereign Cyber Panel is an advanced **Open Source Intelligence (OSINT)** dashbo
 
 ---
 
+
 ## 🚀 How to Run Locally
 
 If you want to clone this project and run it on your machine, follow these steps:
@@ -32,6 +35,8 @@ If you want to clone this project and run it on your machine, follow these steps
    ```bash
    git clone [https://github.com/pankajvalvi950-wq/sherlocklite-osint.git](https://github.com/pankajvalvi950-wq/sherlocklite-osint.git)
    cd sherlocklite-osint
+
+   
 1. Install requirements:
 
 Bash
@@ -41,6 +46,8 @@ pip install -r requirements.txt
 
 Bash
 streamlit run app.py
+
+
 🛡️ Disclaimer
 This tool is developed strictly for educational purposes, security auditing, and digital footprint analysis. The author is not responsible for any misuse or malicious legal implications caused by this tool.
 
