@@ -39,17 +39,18 @@ If you want to clone this project and run it on your machine, follow these steps
    
 2. Install requirements:
 
-Bash
-pip install -r requirements.txt
+      Bash
+      pip install -r requirements.txt
 
 3. Run the Streamlit application
 
-Bash
-streamlit run app.py
+      Bash
+      streamlit run app.py
 
 
 🛡️ Disclaimer
 This tool is developed strictly for educational purposes, security auditing, and digital footprint analysis. The author is not responsible for any misuse or malicious legal implications caused by this tool.
+
 
 👤 Author
 GitHub: @pankajvalvi950-wq
