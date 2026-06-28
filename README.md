@@ -32,3 +32,17 @@ If you want to clone this project and run it on your machine, follow these steps
    ```bash
    git clone [https://github.com/pankajvalvi950-wq/sherlocklite-osint.git](https://github.com/pankajvalvi950-wq/sherlocklite-osint.git)
    cd sherlocklite-osint
+1. Install requirements:
+
+Bash
+pip install -r requirements.txt
+
+2. Run the Streamlit application
+
+Bash
+streamlit run app.py
+🛡️ Disclaimer
+This tool is developed strictly for educational purposes, security auditing, and digital footprint analysis. The author is not responsible for any misuse or malicious legal implications caused by this tool.
+
+👤 Author
+GitHub: @pankajvalvi950-wq
