@@ -181,9 +181,48 @@ if module_choice == "👤 Username Threat Scanner":
             st.markdown("---")
             st.markdown("💡 **Result Intel:** Active hits confirm registered digital accounts with matching identity handles. Guarded networks mean user accounts might exist but are hidden behind strict authorization headers.")
             
-            report_text = f"--- SHERLOCKLITE OSINT SCAN REPORT ---\nTarget Username: {target_user}\nScan Time: {datetime.now()}\n\n[Active Hits]\n"
-            for site, url in sorted(found_profiles): report_text += f"- {site}: {url}\n"
-            st.download_button("📥 Download Encrypted OSINT Log Report", data=report_text, file_name=f"osint_report_{target_user}.txt")
+            # ─── NEW: MULTI-FORMAT REPORT EXPORTER MODULE ───
+            st.markdown("### 📥 Export Intelligence Report")
+            
+            # Do columns banayein taaki user dono mein se koi bhi format chun sake
+            exp_col1, exp_col2 = st.columns(2)
+            
+            with exp_col1:
+                # 1. Standard Text Log (Purana Format)
+                report_text = f"--- SHERLOCKLITE OSINT SCAN REPORT ---\nTarget Username: {target_user}\nScan Time: {datetime.now()}\n\n[Active Hits]\n"
+                for site, url in sorted(found_profiles): report_text += f"- {site}: {url}\n"
+                st.download_button(
+                    label="🗎 Download Notepad Text Log", 
+                    data=report_text, 
+                    file_name=f"osint_report_{target_user}.txt",
+                    mime="text/plain"
+                )
+                
+            with exp_col2:
+                # 2. Advanced Excel/CSV Sheet (Naya Feature)
+                import pandas as pd
+                
+                # Saare hits aur guarded nodes ko structured data mein convert kiya
+                sheet_data = []
+                for site, url in found_profiles:
+                    sheet_data.append({"Platform": site, "Profile URL": url, "Status": "🟢 Active Hit"})
+                for site, url in blocked_profiles:
+                    sheet_data.append({"Platform": site, "Profile URL": url, "Status": "🟡 Auth Guarded"})
+                
+                if sheet_data:
+                    # Pandas Dataframe banaya taaki Excel read kar sake
+                    df = pd.DataFrame(sheet_data)
+                    # CSV format mein convert karke encode kiya
+                    csv_data = df.to_csv(index=False).encode('utf-8')
+                    
+                    st.download_button(
+                        label="📊 Download Excel / CSV Sheet",
+                        data=csv_data,
+                        file_name=f"osint_report_{target_user}.csv",
+                        mime="text/csv"
+                    )
+                else:
+                    st.info("No data available to export in sheet.")
         else:
             st.error("Please enter a target username!")
 
