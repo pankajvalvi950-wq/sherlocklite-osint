@@ -75,6 +75,8 @@ if module_choice == "👤 Username Threat Scanner":
     st.markdown("> 📌 **Quick Intel:** Maps identical user handles across 18 major digital platforms in parallel.")
 
     target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., pankajvalvi")
+    # Advanced Search Checkbox
+    enable_adv = st.checkbox("🔥 Enable Advanced Search (Scan Shadow Accounts & Variations like _ff, _official, _real, _ig)", value=False)
 
     websites = {
         "GitHub": {"url": "https://github.com/{}", "redirect": True},
@@ -97,7 +99,9 @@ if module_choice == "👤 Username Threat Scanner":
         "Linktree": {"url": "https://linktr.ee/{}", "redirect": True}
     }
 
-    def scan_single_site(site_name, config, username):
+    def scan_single_site(site_name, config, username, delay=0):
+        if delay > 0:
+            time.sleep(delay)
         target_url = config["url"].format(username)
         current_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
         try:
@@ -118,17 +122,31 @@ if module_choice == "👤 Username Threat Scanner":
             if target_user.strip() not in st.session_state["scan_history"]:
                 st.session_state["scan_history"].append(f"User: {target_user.strip()}")
             
-            username_variations = set([raw_input.replace(" ", ""), raw_input.replace(" ", "-"), raw_input.replace(" ", "_")])
+            # Advanced vs Normal logic handles here
+            if enable_adv:
+                base_vars = [raw_input.replace(" ", ""), raw_input.replace(" ", "-"), raw_input.replace(" ", "_")]
+                suffixes = ['', '_ff', '_official', '_real', '_ig', 'official']
+                advanced_vars = set()
+                for bv in base_vars:
+                    for suff in suffixes:
+                        advanced_vars.add(f"{bv}{suff}")
+                username_variations = advanced_vars
+                delay_per_request = 0.8
+                max_threads = 3
+            else:
+                username_variations = set([raw_input.replace(" ", ""), raw_input.replace(" ", "-"), raw_input.replace(" ", "_")])
+                delay_per_request = 0
+                max_threads = 10
+
             found_profiles, blocked_profiles = [], []
-            
             scan_tasks = [(site, cfg, user) for user in username_variations for site, cfg in websites.items()]
             
             progress_bar = st.progress(0)
             status_text = st.empty()
             total_steps, current_step = len(scan_tasks), 0
             
-            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-                futures = {executor.submit(scan_single_site, s, c, u): s for s, c, u in scan_tasks}
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
+                futures = {executor.submit(scan_single_site, s, c, u, delay_per_request): s for s, c, u in scan_tasks}
                 for future in concurrent.futures.as_completed(futures):
                     current_step += 1
                     percent = int((current_step / total_steps) * 100)
@@ -336,7 +354,6 @@ elif module_choice == "🧠 HTTP Header & Security Auditor":
                     st.session_state["scan_history"].append(f"Headers: {url}")
 
                 with st.spinner("Capturing transmission response headers..."):
-                    # Using professional browser footprint header configurations
                     browser_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
                     response = requests.get(url, timeout=6, headers=browser_headers, allow_redirects=True)
                 
@@ -437,7 +454,7 @@ elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
                     
                     status_block.write("🔒 Preparing security engine configuration with modern SNI/ALPN context blocks...")
                     ctx = ssl.create_default_context()
-                    ctx.set_alpn_protocols(['http/1.1', 'h2'])  # Force alignment with proxies/CDNs to prevent quiet connection drops
+                    ctx.set_alpn_protocols(['http/1.1', 'h2'])
                     
                     status_block.write("🤝 Negotiating secure cryptographic wrapper keys...")
                     ssock = ctx.wrap_socket(sock, server_hostname=clean_ssl)
@@ -450,7 +467,6 @@ elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
                     if cert:
                         status_block.update(label="✅ Handshake Complete & Verified!", state="complete")
                         
-                        # Extra-Robust Tuple Parsing Engine to extract authority blocks without crashes
                         issuer_map = {}
                         try:
                             for item in cert.get('issuer', []):
@@ -463,7 +479,6 @@ elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
                         issuer_org = issuer_map.get('organizationName', '')
                         issuer_cn = issuer_map.get('commonName', '')
                         
-                        # Fallback presentation mechanism in case strings parse unstandardized
                         if not issuer_org and not issuer_cn:
                             issuer_string = str(cert.get('issuer', 'Unknown Issuer Certificate Authority'))
                         else:
