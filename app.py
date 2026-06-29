@@ -35,27 +35,40 @@ def clean_to_root_domain(input_str):
         return ".".join(parts[-2:])
     return hostname
 
-# Initialize Session State for Sidebar Logs
+# Initialize Session State
 if "scan_history" not in st.session_state:
     st.session_state["scan_history"] = []
+
+# FIX: Track active module in session_state so Streamlit Cloud
+# doesn't mix up two modules' UI on first render / rerun
+MODULES = [
+    "👤 Username Threat Scanner",
+    "🌐 IP Intelligence Tracker",
+    "🛡️ Tactical Port Scanner",
+    "🛰️ DNS & Subdomain Mapper",
+    "🧠 HTTP Header & Security Auditor",
+    "📜 Domain Registry & Whois (RDAP)",
+    "🔒 SSL/TLS Cryptographic Inspector",
+    "📄 Metadata Threat Extractor",
+]
+if "active_module" not in st.session_state:
+    st.session_state["active_module"] = MODULES[0]
 
 # Sidebar Panel Layout
 st.sidebar.title("🔱 Sovereign Cyber Panel")
 st.sidebar.markdown("**v18.0 Ironclad Production Suite**")
 
-module_choice = st.sidebar.radio(
-    "Select Cyber OSINT Module:", 
-    [
-        "👤 Username Threat Scanner", 
-        "🌐 IP Intelligence Tracker", 
-        "🛡️ Tactical Port Scanner",
-        "🛰️ DNS & Subdomain Mapper",
-        "🧠 HTTP Header & Security Auditor",
-        "📜 Domain Registry & Whois (RDAP)",
-        "🔒 SSL/TLS Cryptographic Inspector",
-        "📄 Metadata Threat Extractor"  
-    ]
+selected = st.sidebar.radio(
+    "Select Cyber OSINT Module:",
+    MODULES,
+    index=MODULES.index(st.session_state["active_module"]),
 )
+# Persist selection — prevents ghost UI on cloud rerun
+if selected != st.session_state["active_module"]:
+    st.session_state["active_module"] = selected
+    st.rerun()
+
+module_choice = st.session_state["active_module"]
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📜 System Intel Logs")
