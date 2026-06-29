@@ -75,7 +75,8 @@ if module_choice == "👤 Username Threat Scanner":
     st.markdown("> 📌 **Quick Intel:** Maps identical user handles across 18 major digital platforms in parallel.")
 
     target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., pankajvalvi")
-    # Advanced Search Checkbox
+    
+    # [FIXED] Yeh checkbox strictly is IF condition ke andar hai, ab bahar nahi dikhega
     enable_adv = st.checkbox("🔥 Enable Advanced Search (Scan Shadow Accounts & Variations like _ff, _official, _real, _ig)", value=False)
 
     websites = {
@@ -122,7 +123,6 @@ if module_choice == "👤 Username Threat Scanner":
             if target_user.strip() not in st.session_state["scan_history"]:
                 st.session_state["scan_history"].append(f"User: {target_user.strip()}")
             
-            # Advanced vs Normal logic handles here
             if enable_adv:
                 base_vars = [raw_input.replace(" ", ""), raw_input.replace(" ", "-"), raw_input.replace(" ", "_")]
                 suffixes = ['', '_ff', '_official', '_real', '_ig', 'official']
