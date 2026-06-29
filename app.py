@@ -77,17 +77,21 @@ if module_choice == "👤 Username Threat Scanner":
     target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., pankajvalvi")
 
     # ── Turbo Variation Scan Toggle ──────────────────────────────────────────
+    # Scoped key ensures this toggle only affects the Username module
+    if "username_turbo_on" not in st.session_state:
+        st.session_state["username_turbo_on"] = False
+
     turbo_variation = st.toggle(
         "⚡ Turbo Variation Scan",
-        value=False,
+        key="username_turbo_on",
         help="Automatically generates common username variations (ig_, official_, iam_, the_, its_, real_, etc.) and scans all of them in one shot."
     )
 
     if turbo_variation:
         st.info(
             "🔁 **Turbo Mode Active** — Will scan the base username + common prefix/suffix variations simultaneously.\n\n"
-            "Prefixes: `ig` · `official` · `iam` · `the` · `its` · `real` · `hey` · `mr` · `ms` · `iam`\n\n"
-            "Suffixes: `official` · `real` · `ig` · `_` · `01` · `02` · `yt` · `hq`"
+            "Prefixes: `ig` · `official` · `iam` · `the` · `its` · `real` · `hey` · `mr` · `ms`\n\n"
+            "Suffixes: `official` · `real` · `ig` · `01` · `02` · `yt` · `hq` · `tv` · `live`"
         )
 
     # Common username variation patterns (prefix + suffix)
@@ -174,11 +178,13 @@ if module_choice == "👤 Username Threat Scanner":
 
             if turbo_variation:
                 username_variations = set(generate_variations(raw_input))
+            else:
+                username_variations = set([raw_input.replace(" ", ""), raw_input.replace(" ", "-"), raw_input.replace(" ", "_")])
+
+            if turbo_variation:
                 st.markdown(f"🔁 **Turbo Variation Mode:** Scanning **{len(username_variations)}** username variants...")
                 with st.expander("📋 View all variations being scanned"):
                     st.code("\n".join(sorted(username_variations)))
-            else:
-                username_variations = set([raw_input.replace(" ", ""), raw_input.replace(" ", "-"), raw_input.replace(" ", "_")])
             found_profiles, blocked_profiles = [], []
             
             scan_tasks = [(site, cfg, user) for user in username_variations for site, cfg in websites.items()]
