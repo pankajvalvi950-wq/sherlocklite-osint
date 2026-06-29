@@ -35,8 +35,17 @@ def clean_to_root_domain(input_str):
     return hostname
 
 # Initialize Session State for Sidebar Logs
+# Initialize Session State for Sidebar Logs as a dictionary for each module
 if "scan_history" not in st.session_state:
-    st.session_state["scan_history"] = []
+    st.session_state["scan_history"] = {
+        "👤 Username Threat Scanner": [],
+        "🌐 IP Intelligence Tracker": [],
+        "🛡️ Tactical Port Scanner": [],
+        "🛰️ DNS & Subdomain Mapper": [],
+        "🧠 HTTP Header & Security Auditor": [],
+        "📜 Domain Registry & Whois (RDAP)": [],
+        "🔒 SSL/TLS Cryptographic Inspector": []
+    }
 
 # Sidebar Panel Layout
 st.sidebar.title("🔱 Sovereign Cyber Panel")
@@ -58,14 +67,15 @@ module_choice = st.sidebar.radio(
 st.sidebar.markdown("---")
 st.sidebar.subheader("📜 System Intel Logs")
 if st.sidebar.button("🧹 Clear Logs"):
-    st.session_state["scan_history"] = []
+    st.session_state["scan_history"][module_choice] = []
     st.sidebar.success("Logs cleared!")
 
-if st.session_state["scan_history"]:
-    for past_target in reversed(st.session_state["scan_history"]):
+current_logs = st.session_state["scan_history"].get(module_choice, [])
+if current_logs:
+    for past_target in reversed(current_logs):
         st.sidebar.markdown(f"🎯 `{past_target}`")
 else:
-    st.sidebar.info("No active logs registered.")
+    st.sidebar.info("No active logs registered for this module.")
 
 # =========================================================================
 # MODULE 1: USERNAME THREAT SCANNER
@@ -75,6 +85,9 @@ if module_choice == "👤 Username Threat Scanner":
     st.markdown("> 📌 **Quick Intel:** Maps identical user handles across 18 major digital platforms in parallel.")
 
     target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., pankajvalvi")
+    
+    # [FIXED] Yeh checkbox strictly is IF condition ke andar hai, ab bahar nahi dikhega
+    enable_adv = st.checkbox("🔥 Enable Advanced Search (Scan Shadow Accounts & Variations like _ff, _official, _real, _ig)", value=False)
 
     websites = {
         "GitHub": {"url": "https://github.com/{}", "redirect": True},
@@ -97,7 +110,9 @@ if module_choice == "👤 Username Threat Scanner":
         "Linktree": {"url": "https://linktr.ee/{}", "redirect": True}
     }
 
-    def scan_single_site(site_name, config, username):
+    def scan_single_site(site_name, config, username, delay=0):
+        if delay > 0:
+            time.sleep(delay)
         target_url = config["url"].format(username)
         current_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
         try:
@@ -115,20 +130,34 @@ if module_choice == "👤 Username Threat Scanner":
     if st.button("⚡ Execute Turbo Fast Scan"):
         if target_user.strip():
             raw_input = target_user.lower().strip()
-            if target_user.strip() not in st.session_state["scan_history"]:
-                st.session_state["scan_history"].append(f"User: {target_user.strip()}")
+            log_entry = f"User: {target_user.strip()}"
+            if log_entry not in st.session_state["scan_history"][module_choice]:
+                st.session_state["scan_history"][module_choice].append(log_entry)
             
-            username_variations = set([raw_input.replace(" ", ""), raw_input.replace(" ", "-"), raw_input.replace(" ", "_")])
+            if enable_adv:
+                base_vars = [raw_input.replace(" ", ""), raw_input.replace(" ", "-"), raw_input.replace(" ", "_")]
+                suffixes = ['', '_ff', '_official', '_real', '_ig', 'official']
+                advanced_vars = set()
+                for bv in base_vars:
+                    for suff in suffixes:
+                        advanced_vars.add(f"{bv}{suff}")
+                username_variations = advanced_vars
+                delay_per_request = 0.8
+                max_threads = 3
+            else:
+                username_variations = set([raw_input.replace(" ", ""), raw_input.replace(" ", "-"), raw_input.replace(" ", "_")])
+                delay_per_request = 0
+                max_threads = 10
+
             found_profiles, blocked_profiles = [], []
-            
             scan_tasks = [(site, cfg, user) for user in username_variations for site, cfg in websites.items()]
             
             progress_bar = st.progress(0)
             status_text = st.empty()
             total_steps, current_step = len(scan_tasks), 0
             
-            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-                futures = {executor.submit(scan_single_site, s, c, u): s for s, c, u in scan_tasks}
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
+                futures = {executor.submit(scan_single_site, s, c, u, delay_per_request): s for s, c, u in scan_tasks}
                 for future in concurrent.futures.as_completed(futures):
                     current_step += 1
                     percent = int((current_step / total_steps) * 100)
@@ -184,8 +213,9 @@ elif module_choice == "🌐 IP Intelligence Tracker":
                     
                     if response.get("status") == "success":
                         target_ip = response.get("query", "Unknown IP")
-                        if f"IP: {target_ip}" not in st.session_state["scan_history"]:
-                            st.session_state["scan_history"].append(f"IP: {target_ip}")
+                    log_entry = f"IP: {target_ip}"
+                    if log_entry not in st.session_state["scan_history"][module_choice]:
+                        st.session_state["scan_history"][module_choice].append(log_entry)
                         
                         st.success(f"🎯 Target Acquired: {target_ip} ({clean_target})")
                         col1, col2 = st.columns(2)
@@ -237,8 +267,9 @@ elif module_choice == "🛡️ Tactical Port Scanner":
     if st.button("⚡ Trigger Stealth Port Audit"):
         if target_host.strip():
             clean_host = clean_to_pure_hostname(target_host)
-            if f"Ports: {clean_host}" not in st.session_state["scan_history"]:
-                st.session_state["scan_history"].append(f"Ports: {clean_host}")
+            log_entry = f"Ports: {clean_host}"
+            if log_entry not in st.session_state["scan_history"][module_choice]:
+                st.session_state["scan_history"][module_choice].append(log_entry)
                 
             open_ports, closed_ports = [], []
             with st.spinner("Executing network socket pipeline probes..."):
@@ -289,8 +320,9 @@ elif module_choice == "🛰️ DNS & Subdomain Mapper":
             clean_domain = clean_to_root_domain(target_domain)
             st.info(f"⚙️ Target Mapping optimized on Root Asset: `{clean_domain}`")
             
-            if f"DNS: {clean_domain}" not in st.session_state["scan_history"]:
-                st.session_state["scan_history"].append(f"DNS: {clean_domain}")
+            log_entry = f"DNS: {clean_domain}"
+            if log_entry not in st.session_state["scan_history"][module_choice]:
+                st.session_state["scan_history"][module_choice].append(log_entry)
             
             alive_subs, dead_subs = [], []
             with st.spinner("Querying authoritative zone maps..."):
@@ -332,11 +364,11 @@ elif module_choice == "🧠 HTTP Header & Security Auditor":
             clean_host = clean_to_pure_hostname(target_url)
             url = "https://" + clean_host
             try:
-                if f"Headers: {url}" not in st.session_state["scan_history"]:
-                    st.session_state["scan_history"].append(f"Headers: {url}")
+                log_entry = f"Headers: {url}"
+                if log_entry not in st.session_state["scan_history"][module_choice]:
+                    st.session_state["scan_history"][module_choice].append(log_entry)
 
                 with st.spinner("Capturing transmission response headers..."):
-                    # Using professional browser footprint header configurations
                     browser_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
                     response = requests.get(url, timeout=6, headers=browser_headers, allow_redirects=True)
                 
@@ -380,9 +412,9 @@ elif module_choice == "📜 Domain Registry & Whois (RDAP)":
             root_domain = clean_to_root_domain(input_domain)
             st.info(f"⚙️ Target auto-cleaned down to Registry Root Domain: `{root_domain}`")
             
-            if f"Whois: {root_domain}" not in st.session_state["scan_history"]:
-                st.session_state["scan_history"].append(f"Whois: {root_domain}")
-
+            log_entry = f"Whois: {root_domain}"
+            if log_entry not in st.session_state["scan_history"][module_choice]:
+                st.session_state["scan_history"][module_choice].append(log_entry)
             try:
                 with st.spinner("Querying centralized root registry node gateways..."):
                     rdap_endpoint = f"https://rdap.org/domain/{root_domain}"
@@ -427,8 +459,9 @@ elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
         if ssl_domain.strip():
             clean_ssl = clean_to_pure_hostname(ssl_domain)
             
-            if f"SSL: {clean_ssl}" not in st.session_state["scan_history"]:
-                st.session_state["scan_history"].append(f"SSL: {clean_ssl}")
+            log_entry = f"SSL: {clean_ssl}"
+            if log_entry not in st.session_state["scan_history"][module_choice]:
+                st.session_state["scan_history"][module_choice].append(log_entry)
 
             with st.status("Initiating Advanced TLS Connection...", expanded=True) as status_block:
                 try:
@@ -437,7 +470,7 @@ elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
                     
                     status_block.write("🔒 Preparing security engine configuration with modern SNI/ALPN context blocks...")
                     ctx = ssl.create_default_context()
-                    ctx.set_alpn_protocols(['http/1.1', 'h2'])  # Force alignment with proxies/CDNs to prevent quiet connection drops
+                    ctx.set_alpn_protocols(['http/1.1', 'h2'])
                     
                     status_block.write("🤝 Negotiating secure cryptographic wrapper keys...")
                     ssock = ctx.wrap_socket(sock, server_hostname=clean_ssl)
@@ -450,7 +483,6 @@ elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
                     if cert:
                         status_block.update(label="✅ Handshake Complete & Verified!", state="complete")
                         
-                        # Extra-Robust Tuple Parsing Engine to extract authority blocks without crashes
                         issuer_map = {}
                         try:
                             for item in cert.get('issuer', []):
@@ -463,7 +495,6 @@ elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
                         issuer_org = issuer_map.get('organizationName', '')
                         issuer_cn = issuer_map.get('commonName', '')
                         
-                        # Fallback presentation mechanism in case strings parse unstandardized
                         if not issuer_org and not issuer_cn:
                             issuer_string = str(cert.get('issuer', 'Unknown Issuer Certificate Authority'))
                         else:
