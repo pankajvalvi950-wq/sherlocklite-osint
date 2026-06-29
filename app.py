@@ -39,8 +39,6 @@ def clean_to_root_domain(input_str):
 if "scan_history" not in st.session_state:
     st.session_state["scan_history"] = []
 
-# FIX: Track active module in session_state so Streamlit Cloud
-# doesn't mix up two modules' UI on first render / rerun
 MODULES = [
     "👤 Username Threat Scanner",
     "🌐 IP Intelligence Tracker",
@@ -51,24 +49,20 @@ MODULES = [
     "🔒 SSL/TLS Cryptographic Inspector",
     "📄 Metadata Threat Extractor",
 ]
-if "active_module" not in st.session_state:
-    st.session_state["active_module"] = MODULES[0]
 
 # Sidebar Panel Layout
 st.sidebar.title("🔱 Sovereign Cyber Panel")
 st.sidebar.markdown("**v18.0 Ironclad Production Suite**")
 
-selected = st.sidebar.radio(
+# key="module_radio" gives Streamlit a stable widget identity on cloud —
+# without it, the radio and if/elif blocks can desync on first render
+# causing two modules' UI to appear simultaneously.
+module_choice = st.sidebar.radio(
     "Select Cyber OSINT Module:",
     MODULES,
-    index=MODULES.index(st.session_state["active_module"]),
+    index=0,
+    key="module_radio",
 )
-# Persist selection — prevents ghost UI on cloud rerun
-if selected != st.session_state["active_module"]:
-    st.session_state["active_module"] = selected
-    st.rerun()
-
-module_choice = st.session_state["active_module"]
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📜 System Intel Logs")
