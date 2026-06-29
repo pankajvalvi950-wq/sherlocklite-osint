@@ -45,7 +45,12 @@ MODULES = [
 
 st.sidebar.title("🔱 Sovereign Cyber Panel")
 st.sidebar.markdown("**v18.0 Ironclad Production Suite**")
-module_choice = st.sidebar.radio("Select Cyber OSINT Module:", MODULES, key="module_radio")
+module_index = st.sidebar.radio(
+    "Select Cyber OSINT Module:",
+    range(len(MODULES)),
+    format_func=lambda i: MODULES[i],
+    key="module_radio",
+)
 st.sidebar.markdown("---")
 st.sidebar.subheader("📜 System Intel Logs")
 if st.sidebar.button("🧹 Clear Logs", key="clear_logs"):
@@ -470,15 +475,15 @@ def module_metadata():
 # =========================================================================
 # DISPATCH — one clean lookup, zero if/elif chains
 # =========================================================================
-DISPATCH = {
-    "👤 Username Threat Scanner":       module_username,
-    "🌐 IP Intelligence Tracker":       module_ip,
-    "🛡️ Tactical Port Scanner":         module_ports,
-    "🛰️ DNS & Subdomain Mapper":        module_dns,
-    "🧠 HTTP Header & Security Auditor":module_headers,
-    "📜 Domain Registry & Whois (RDAP)":module_whois,
-    "🔒 SSL/TLS Cryptographic Inspector":module_ssl,
-    "📄 Metadata Threat Extractor":     module_metadata,
-}
+DISPATCH = [
+    module_username,
+    module_ip,
+    module_ports,
+    module_dns,
+    module_headers,
+    module_whois,
+    module_ssl,
+    module_metadata,
+]
 
-DISPATCH[module_choice]()
+DISPATCH[module_index]()
