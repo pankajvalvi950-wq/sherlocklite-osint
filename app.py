@@ -76,44 +76,6 @@ if module_choice == "👤 Username Threat Scanner":
 
     target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., pankajvalvi")
 
-    # ── Turbo Variation Scan Toggle ──────────────────────────────────────────
-    # Scoped key ensures this toggle only affects the Username module
-    if "username_turbo_on" not in st.session_state:
-        st.session_state["username_turbo_on"] = False
-
-    turbo_variation = st.toggle(
-        "⚡ Turbo Variation Scan",
-        key="username_turbo_on",
-        help="Automatically generates common username variations (ig_, official_, iam_, the_, its_, real_, etc.) and scans all of them in one shot."
-    )
-
-    if turbo_variation:
-        st.info(
-            "🔁 **Turbo Mode Active** — Will scan the base username + common prefix/suffix variations simultaneously.\n\n"
-            "Prefixes: `ig` · `official` · `iam` · `the` · `its` · `real` · `hey` · `mr` · `ms`\n\n"
-            "Suffixes: `official` · `real` · `ig` · `01` · `02` · `yt` · `hq` · `tv` · `live`"
-        )
-
-    # Common username variation patterns (prefix + suffix)
-    VARIATION_PREFIXES = ["ig", "official", "iam", "iamthe", "the", "its", "real", "hey", "mr", "ms", "hi", "heyits"]
-    VARIATION_SUFFIXES = ["official", "real", "ig", "01", "02", "yt", "hq", "tv", "live"]
-
-    def generate_variations(base: str) -> list:
-        """Generate common username variations.
-        Each prefix/suffix connects directly AND with underscore.
-        e.g. pankaj → igpankaj, ig_pankaj, pankajofficial, pankaj_official
-        """
-        base = base.strip().lower().replace(" ", "")
-        variants = set()
-        variants.add(base)
-        for prefix in VARIATION_PREFIXES:
-            variants.add(f"{prefix}{base}")
-            variants.add(f"{prefix}_{base}")
-        for suffix in VARIATION_SUFFIXES:
-            variants.add(f"{base}{suffix}")
-            variants.add(f"{base}_{suffix}")
-        return sorted(variants)
-
     websites = {
         "GitHub": {"url": "https://github.com/{}", "redirect": True},
         "GitLab": {"url": "https://gitlab.com/{}", "redirect": True},
@@ -135,31 +97,11 @@ if module_choice == "👤 Username Threat Scanner":
         "Linktree": {"url": "https://linktr.ee/{}", "redirect": True}
     }
 
-    USER_AGENTS = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1",
-        "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 11.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/124.0.0.0 Safari/537.36",
-    ]
-
     def scan_single_site(site_name, config, username):
         target_url = config["url"].format(username)
-        # Rotate User-Agent randomly + add small random delay to avoid pattern detection
-        current_headers = {
-            "User-Agent": random.choice(USER_AGENTS),
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Connection": "keep-alive",
-            "DNT": "1",
-        }
-        time.sleep(random.uniform(0.3, 1.2))
+        current_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
         try:
-            response = requests.get(target_url, headers=current_headers, timeout=7, allow_redirects=config["redirect"])
+            response = requests.get(target_url, headers=current_headers, timeout=5, allow_redirects=config["redirect"])
             if response.status_code == 200:
                 if "reddit" in target_url and "error" in response.text:
                     return {"status": "not_found", "site": site_name}
@@ -175,84 +117,48 @@ if module_choice == "👤 Username Threat Scanner":
             raw_input = target_user.lower().strip()
             if target_user.strip() not in st.session_state["scan_history"]:
                 st.session_state["scan_history"].append(f"User: {target_user.strip()}")
-
-            if turbo_variation:
-                username_variations = set(generate_variations(raw_input))
-            else:
-                username_variations = set([raw_input.replace(" ", ""), raw_input.replace(" ", "-"), raw_input.replace(" ", "_")])
-
-            if turbo_variation:
-                st.markdown(f"🔁 **Turbo Variation Mode:** Scanning **{len(username_variations)}** username variants...")
-                with st.expander("📋 View all variations being scanned"):
-                    st.code("\n".join(sorted(username_variations)))
-
+            
+            username_variations = set([raw_input.replace(" ", ""), raw_input.replace(" ", "-"), raw_input.replace(" ", "_")])
             found_profiles, blocked_profiles = [], []
+            
             scan_tasks = [(site, cfg, user) for user in username_variations for site, cfg in websites.items()]
+            
             progress_bar = st.progress(0)
             status_text = st.empty()
             total_steps, current_step = len(scan_tasks), 0
-            workers = 4 if turbo_variation else 10
-            with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
-                futures = {executor.submit(scan_single_site, s, c, u): (s, u) for s, c, u in scan_tasks}
+            
+            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                futures = {executor.submit(scan_single_site, s, c, u): s for s, c, u in scan_tasks}
                 for future in concurrent.futures.as_completed(futures):
                     current_step += 1
                     percent = int((current_step / total_steps) * 100)
                     progress_bar.progress(percent)
                     status_text.text(f"⚡ Probing Nodes... ({percent}%)")
+                    
                     res = future.result()
-                    _, scanned_user = futures[future]
-                    if res["status"] == "found":
-                        found_profiles.append((res["site"], res["url"], scanned_user))
-                    elif res["status"] == "blocked":
-                        blocked_profiles.append((res["site"], res["url"], scanned_user))
-
-            # Store results in session state — survives module switching
-            st.session_state["username_scan_results"] = {
-                "found": found_profiles,
-                "blocked": blocked_profiles,
-                "target": target_user,
-                "turbo": turbo_variation,
-                "raw_input": raw_input,
-            }
+                    if res["status"] == "found": found_profiles.append((res["site"], res["url"]))
+                    elif res["status"] == "blocked": blocked_profiles.append((res["site"], res["url"]))
+                    
+            status_text.success("🎯 Digital footprint mapping pipeline complete!")
+            
+            m_col1, m_col2 = st.columns(2)
+            m_col1.metric("🟢 Live Active Accounts", f"{len(found_profiles)} Hits")
+            m_col2.metric("🟡 Guarded/Login Walls", f"{len(blocked_profiles)} Nodes")
+            
+            tab1, tab2 = st.tabs(["🟢 Active Hits", "🟨 Guarded / Restricted"])
+            with tab1:
+                for site, url in sorted(found_profiles): st.success(f"✅ **{site}** - [Launch Profile]({url})")
+            with tab2:
+                for site, url in sorted(blocked_profiles): st.warning(f"🟨 **{site}** - Auth Protected -> [Check Manually]({url})")
+            
+            st.markdown("---")
+            st.markdown("💡 **Result Intel:** Active hits confirm registered digital accounts with matching identity handles. Guarded networks mean user accounts might exist but are hidden behind strict authorization headers.")
+            
+            report_text = f"--- SHERLOCKLITE OSINT SCAN REPORT ---\nTarget Username: {target_user}\nScan Time: {datetime.now()}\n\n[Active Hits]\n"
+            for site, url in sorted(found_profiles): report_text += f"- {site}: {url}\n"
+            st.download_button("📥 Download Encrypted OSINT Log Report", data=report_text, file_name=f"osint_report_{target_user}.txt")
         else:
             st.error("Please enter a target username!")
-
-    # Render results only when inside Username module AND results exist
-    if "username_scan_results" in st.session_state:
-        res_data = st.session_state["username_scan_results"]
-        found_profiles = res_data["found"]
-        blocked_profiles = res_data["blocked"]
-        target_user_label = res_data["target"]
-        turbo_was_on = res_data["turbo"]
-        raw_input = res_data["raw_input"]
-
-        status_placeholder = st.success("🎯 Digital footprint mapping pipeline complete!")
-
-        m_col1, m_col2 = st.columns(2)
-        m_col1.metric("🟢 Live Active Accounts", f"{len(found_profiles)} Hits")
-        m_col2.metric("🟡 Guarded/Login Walls", f"{len(blocked_profiles)} Nodes")
-
-        tab1, tab2 = st.tabs(["🟢 Active Hits", "🟨 Guarded / Restricted"])
-        with tab1:
-            for site, url, var in sorted(found_profiles):
-                label = f" `({var})`" if turbo_was_on and var != raw_input else ""
-                st.success(f"✅ **{site}**{label} - [Launch Profile]({url})")
-        with tab2:
-            for site, url, var in sorted(blocked_profiles):
-                label = f" `({var})`" if turbo_was_on and var != raw_input else ""
-                st.warning(f"🟨 **{site}**{label} - Auth Protected -> [Check Manually]({url})")
-
-        st.markdown("---")
-        st.markdown("💡 **Result Intel:** Active hits confirm registered digital accounts with matching identity handles. Guarded networks mean user accounts might exist but are hidden behind strict authorization headers.")
-
-        report_text = f"--- SHERLOCKLITE OSINT SCAN REPORT ---\nTarget Username: {target_user_label}\nVariation Scan: {'ON' if turbo_was_on else 'OFF'}\nScan Time: {datetime.now()}\n\n[Active Hits]\n"
-        for site, url, var in sorted(found_profiles):
-            report_text += f"- {site} [{var}]: {url}\n"
-        st.download_button("📥 Download Encrypted OSINT Log Report", data=report_text, file_name=f"osint_report_{target_user_label}.txt")
-
-        if st.button("🗑️ Clear Scan Results"):
-            del st.session_state["username_scan_results"]
-            st.rerun()
 
 # =========================================================================
 # MODULE 2: LIVE IP INTELLIGENCE TRACKER
