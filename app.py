@@ -84,8 +84,8 @@ if module_choice == "👤 Username Threat Scanner":
     st.title("👤 Username Threat Scanner")
     st.markdown("> 📌 **Quick Intel:** Maps identical user handles across 18 major digital platforms in parallel.")
 
-    target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., Cristiano Ronaldo")
-    enable_adv = st.checkbox("🔥 Enable Advanced Search (Scan Shadow Accounts & Variations like _ff, _official, _real, _ig)", value=False)
+    target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., Cristiano Ronaldo", key="m1_username")
+    enable_adv = st.checkbox("🔥 Enable Advanced Search (Scan Shadow Accounts & Variations like _ff, _official, _real, _ig)", value=False, key="m1_adv")
 
     websites = {
         "GitHub": {"url": "https://github.com/{}", "redirect": True},
@@ -126,7 +126,7 @@ if module_choice == "👤 Username Threat Scanner":
         except Exception:
             return {"status": "not_found", "site": site_name}
 
-    if st.button("⚡ Execute Turbo Fast Scan"):
+    if st.button("⚡ Execute Turbo Fast Scan", key="m1_scan"):
         if target_user.strip():
             raw_input = target_user.lower().strip()
             log_entry = f"User: {target_user.strip()}"
@@ -209,9 +209,9 @@ elif module_choice == "🌐 IP Intelligence Tracker":
     st.title("🌐 IP Intelligence Tracker")
     st.markdown("> 📌 **Quick Intel:** Extracts geographical location, ISP data, ASN routes, and coordinates from any public IP or domain.")
 
-    ip_input = st.text_input("📡 Enter Target IP Address or Domain Name:", placeholder="e.g., 8.8.8.8 or google.com")
+    ip_input = st.text_input("📡 Enter Target IP Address or Domain Name:", placeholder="e.g., 8.8.8.8 or google.com", key="m2_ip")
 
-    if st.button("🔍 Trace IP Address"):
+    if st.button("🔍 Trace IP Address", key="m2_trace"):
         if ip_input.strip():
             with st.spinner("Resolving destination routes and querying global geolocation nodes..."):
                 try:
@@ -259,7 +259,7 @@ elif module_choice == "🛡️ Tactical Port Scanner":
     st.title("🛡️ Tactical Port Scanner")
     st.markdown("> 📌 **Quick Intel:** Probes critical ports to detect open communication channels.")
 
-    target_host = st.text_input("💻 Enter Target Domain / Host IP:", placeholder="e.g., scanme.nmap.org")
+    target_host = st.text_input("💻 Enter Target Domain / Host IP:", placeholder="e.g., scanme.nmap.org", key="m3_host")
     common_ports = {21: "FTP", 22: "SSH", 23: "Telnet", 25: "SMTP", 53: "DNS", 80: "HTTP", 110: "POP3", 443: "HTTPS", 3306: "MySQL", 8080: "HTTP-Alt"}
 
     def check_port(host, port, service_name):
@@ -272,7 +272,7 @@ elif module_choice == "🛡️ Tactical Port Scanner":
         except Exception:
             return {"port": port, "status": "CLOSED", "service": service_name}
 
-    if st.button("⚡ Trigger Stealth Port Audit"):
+    if st.button("⚡ Trigger Stealth Port Audit", key="m3_audit"):
         if target_host.strip():
             clean_host = clean_to_pure_hostname(target_host)
             log_entry = f"Ports: {clean_host}"
@@ -308,7 +308,7 @@ elif module_choice == "🛰️ DNS & Subdomain Mapper":
     st.title("🛰️ DNS & Subdomain Mapper")
     st.markdown("> 📌 **Quick Intel:** Enumerates common host prefix vectors to locate active corporate sub-assets.")
 
-    target_domain = st.text_input("🌐 Enter Base Domain Name:", placeholder="e.g., google.com")
+    target_domain = st.text_input("🌐 Enter Base Domain Name:", placeholder="e.g., google.com", key="m4_domain")
     subdomain_wordlist = ["www", "mail", "ftp", "admin", "dev", "staging", "api", "blog", "secure", "vpn"]
 
     def resolve_subdomain(base_domain, sub):
@@ -319,7 +319,7 @@ elif module_choice == "🛰️ DNS & Subdomain Mapper":
         except socket.gaierror:
             return {"subdomain": full_target, "status": "DEAD"}
 
-    if st.button("🚀 Mapping Target Subdomains"):
+    if st.button("🚀 Mapping Target Subdomains", key="m4_map"):
         if target_domain.strip():
             clean_domain = clean_to_root_domain(target_domain)
             log_entry = f"DNS: {clean_domain}"
@@ -355,9 +355,9 @@ elif module_choice == "🧠 HTTP Header & Security Auditor":
     st.title("🧠 HTTP Header & Security Auditor")
     st.markdown("> 📌 **Quick Intel:** Extracts server framework banners and audits missing security policy configurations.")
 
-    target_url = st.text_input("🔗 Enter Target Website URL:", placeholder="e.g., https://google.com")
+    target_url = st.text_input("🔗 Enter Target Website URL:", placeholder="e.g., https://google.com", key="m5_url")
 
-    if st.button("🛡️ Audit Web Security Headers"):
+    if st.button("🛡️ Audit Web Security Headers", key="m5_audit"):
         if target_url.strip():
             clean_host = clean_to_pure_hostname(target_url)
             # FIX 4: Preserve original scheme if user entered http://, else default to https://
@@ -402,9 +402,9 @@ elif module_choice == "📜 Domain Registry & Whois (RDAP)":
     st.title("📜 Domain Registry & Whois (RDAP)")
     st.markdown("> 📌 **Quick Intel:** Direct RDAP query mechanism to extract official registrar logs.")
 
-    input_domain = st.text_input("📝 Enter Target Domain Name:", placeholder="e.g., google.com")
+    input_domain = st.text_input("📝 Enter Target Domain Name:", placeholder="e.g., google.com", key="m6_domain")
 
-    if st.button("🔍 Pull Registry Metadata"):
+    if st.button("🔍 Pull Registry Metadata", key="m6_pull"):
         if input_domain.strip():
             root_domain = clean_to_root_domain(input_domain)
             log_entry = f"Whois: {root_domain}"
@@ -436,9 +436,9 @@ elif module_choice == "📜 Domain Registry & Whois (RDAP)":
 # =========================================================================
 elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
     st.title("🔒 SSL/TLS Cryptographic Inspector")
-    ssl_domain = st.text_input("🛡️ Enter Domain Name for SSL Handshake:", placeholder="e.g., google.com")
+    ssl_domain = st.text_input("🛡️ Enter Domain Name for SSL Handshake:", placeholder="e.g., google.com", key="m7_ssl")
 
-    if st.button("🔒 Trigger Cryptographic Verification"):
+    if st.button("🔒 Trigger Cryptographic Verification", key="m7_verify"):
         if ssl_domain.strip():
             clean_ssl = clean_to_pure_hostname(ssl_domain)
             log_entry = f"SSL: {clean_ssl}"
