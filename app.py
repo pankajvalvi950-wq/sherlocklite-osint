@@ -185,15 +185,12 @@ if module_choice == "👤 Username Threat Scanner":
                 st.markdown(f"🔁 **Turbo Variation Mode:** Scanning **{len(username_variations)}** username variants...")
                 with st.expander("📋 View all variations being scanned"):
                     st.code("\n".join(sorted(username_variations)))
+
             found_profiles, blocked_profiles = [], []
-            
             scan_tasks = [(site, cfg, user) for user in username_variations for site, cfg in websites.items()]
-            
             progress_bar = st.progress(0)
             status_text = st.empty()
             total_steps, current_step = len(scan_tasks), 0
-            
-            # Turbo mode: fewer parallel workers to avoid burst detection
             workers = 4 if turbo_variation else 10
             with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
                 futures = {executor.submit(scan_single_site, s, c, u): (s, u) for s, c, u in scan_tasks}
@@ -202,39 +199,60 @@ if module_choice == "👤 Username Threat Scanner":
                     percent = int((current_step / total_steps) * 100)
                     progress_bar.progress(percent)
                     status_text.text(f"⚡ Probing Nodes... ({percent}%)")
-                    
                     res = future.result()
                     _, scanned_user = futures[future]
                     if res["status"] == "found":
                         found_profiles.append((res["site"], res["url"], scanned_user))
                     elif res["status"] == "blocked":
                         blocked_profiles.append((res["site"], res["url"], scanned_user))
-                    
-            status_text.success("🎯 Digital footprint mapping pipeline complete!")
-            
-            m_col1, m_col2 = st.columns(2)
-            m_col1.metric("🟢 Live Active Accounts", f"{len(found_profiles)} Hits")
-            m_col2.metric("🟡 Guarded/Login Walls", f"{len(blocked_profiles)} Nodes")
-            
-            tab1, tab2 = st.tabs(["🟢 Active Hits", "🟨 Guarded / Restricted"])
-            with tab1:
-                for site, url, var in sorted(found_profiles):
-                    label = f" `({var})`" if turbo_variation and var != raw_input else ""
-                    st.success(f"✅ **{site}**{label} - [Launch Profile]({url})")
-            with tab2:
-                for site, url, var in sorted(blocked_profiles):
-                    label = f" `({var})`" if turbo_variation and var != raw_input else ""
-                    st.warning(f"🟨 **{site}**{label} - Auth Protected -> [Check Manually]({url})")
-            
-            st.markdown("---")
-            st.markdown("💡 **Result Intel:** Active hits confirm registered digital accounts with matching identity handles. Guarded networks mean user accounts might exist but are hidden behind strict authorization headers.")
-            
-            report_text = f"--- SHERLOCKLITE OSINT SCAN REPORT ---\nTarget Username: {target_user}\nVariation Scan: {'ON' if turbo_variation else 'OFF'}\nTotal Variants Scanned: {len(username_variations)}\nScan Time: {datetime.now()}\n\n[Active Hits]\n"
-            for site, url, var in sorted(found_profiles):
-                report_text += f"- {site} [{var}]: {url}\n"
-            st.download_button("📥 Download Encrypted OSINT Log Report", data=report_text, file_name=f"osint_report_{target_user}.txt")
+
+            # Store results in session state — survives module switching
+            st.session_state["username_scan_results"] = {
+                "found": found_profiles,
+                "blocked": blocked_profiles,
+                "target": target_user,
+                "turbo": turbo_variation,
+                "raw_input": raw_input,
+            }
         else:
             st.error("Please enter a target username!")
+
+    # Render results only when inside Username module AND results exist
+    if "username_scan_results" in st.session_state:
+        res_data = st.session_state["username_scan_results"]
+        found_profiles = res_data["found"]
+        blocked_profiles = res_data["blocked"]
+        target_user_label = res_data["target"]
+        turbo_was_on = res_data["turbo"]
+        raw_input = res_data["raw_input"]
+
+        status_placeholder = st.success("🎯 Digital footprint mapping pipeline complete!")
+
+        m_col1, m_col2 = st.columns(2)
+        m_col1.metric("🟢 Live Active Accounts", f"{len(found_profiles)} Hits")
+        m_col2.metric("🟡 Guarded/Login Walls", f"{len(blocked_profiles)} Nodes")
+
+        tab1, tab2 = st.tabs(["🟢 Active Hits", "🟨 Guarded / Restricted"])
+        with tab1:
+            for site, url, var in sorted(found_profiles):
+                label = f" `({var})`" if turbo_was_on and var != raw_input else ""
+                st.success(f"✅ **{site}**{label} - [Launch Profile]({url})")
+        with tab2:
+            for site, url, var in sorted(blocked_profiles):
+                label = f" `({var})`" if turbo_was_on and var != raw_input else ""
+                st.warning(f"🟨 **{site}**{label} - Auth Protected -> [Check Manually]({url})")
+
+        st.markdown("---")
+        st.markdown("💡 **Result Intel:** Active hits confirm registered digital accounts with matching identity handles. Guarded networks mean user accounts might exist but are hidden behind strict authorization headers.")
+
+        report_text = f"--- SHERLOCKLITE OSINT SCAN REPORT ---\nTarget Username: {target_user_label}\nVariation Scan: {'ON' if turbo_was_on else 'OFF'}\nScan Time: {datetime.now()}\n\n[Active Hits]\n"
+        for site, url, var in sorted(found_profiles):
+            report_text += f"- {site} [{var}]: {url}\n"
+        st.download_button("📥 Download Encrypted OSINT Log Report", data=report_text, file_name=f"osint_report_{target_user_label}.txt")
+
+        if st.button("🗑️ Clear Scan Results"):
+            del st.session_state["username_scan_results"]
+            st.rerun()
 
 # =========================================================================
 # MODULE 2: LIVE IP INTELLIGENCE TRACKER
