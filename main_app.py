@@ -74,7 +74,7 @@ if module_choice == "👤 Username Threat Scanner":
     st.title("👤 Username Threat Scanner")
     st.markdown("> 📌 **Quick Intel:** Maps identical user handles across 18 major digital platforms in parallel.")
 
-    target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., pankajvalvi")
+    target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., pankaj")
 
     websites = {
         "GitHub": {"url": "https://github.com/{}", "redirect": True},
@@ -112,34 +112,45 @@ if module_choice == "👤 Username Threat Scanner":
         except Exception:
             return {"status": "not_found", "site": site_name}
 
-    # 🔥 EXTRA TURBO SCAN BUTTON (Properly Indented Inside Module 1)
+    # 🔥 EXTRA TURBO SCAN BUTTON (Perfect Indentation: 4 Spaces)
     if st.button("⚡ Execute Turbo Fast Scan"):
         if target_user.strip():
-            raw_input = target_user.lower().strip()
+            raw_input = target_user.lower().strip().replace(" ", "")
             if target_user.strip() not in st.session_state["scan_history"]:
-                st.session_state["scan_history"].append(f"User: {target_user.strip()}")
+                st.session_state["scan_history"].append(f"Turbo User: {target_user.strip()}")
             
-            # Username variations engine (spaces, dashes, underscores)
-            username_variations = set([raw_input.replace(" ", ""), raw_input.replace(" ", "-"), raw_input.replace(" ", "_")])
+            # 🎯 AUTOMATIC SMART VARIATION ENGINE (Your requested examples connected)
+            username_variations = set([
+                raw_input,                 # pankaj
+                f"{raw_input}_ff",          # pankaj_ff
+                f"itz_{raw_input}",         # itz_pankaj
+                f"its_{raw_input}",         # its_pankaj
+                f"{raw_input}_official",    # pankaj_official
+                f"{raw_input}_123"          # pankaj_123
+            ])
+            
+            st.info(f"🔍 Generating patterns: {', '.join(username_variations)}")
             found_profiles, blocked_profiles = [], []
             
+            # Matrix mapping: multiply all variations with all 18 websites
             scan_tasks = [(site, cfg, user) for user in username_variations for site, cfg in websites.items()]
             
             progress_bar = st.progress(0)
             status_text = st.empty()
             total_steps, current_step = len(scan_tasks), 0
             
-            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-                futures = {executor.submit(scan_single_site, s, c, u): s for s, c, u in scan_tasks}
+            with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
+                futures = {executor.submit(scan_single_site, s, c, u): (s, u) for s, c, u in scan_tasks}
                 for future in concurrent.futures.as_completed(futures):
                     current_step += 1
                     percent = int((current_step / total_steps) * 100)
                     progress_bar.progress(percent)
-                    status_text.text(f"⚡ Probing Nodes... ({percent}%)")
+                    site_info, user_info = futures[future]
+                    status_text.text(f"⚡ Testing: {user_info} on {site_info} ({percent}%)")
                     
                     res = future.result()
-                    if res["status"] == "found": found_profiles.append((res["site"], res["url"]))
-                    elif res["status"] == "blocked": blocked_profiles.append((res["site"], res["url"]))
+                    if res["status"] == "found": found_profiles.append((res["site"], user_info, res["url"]))
+                    elif res["status"] == "blocked": blocked_profiles.append((res["site"], user_info, res["url"]))
                     
             status_text.success("🎯 Digital footprint mapping pipeline complete!")
             
@@ -149,15 +160,23 @@ if module_choice == "👤 Username Threat Scanner":
             
             tab1, tab2 = st.tabs(["🟢 Active Hits", "🟨 Guarded / Restricted"])
             with tab1:
-                for site, url in sorted(found_profiles): st.success(f"✅ **{site}** - [Launch Profile]({url})")
+                if found_profiles:
+                    for site, user, url in sorted(found_profiles): 
+                        st.success(f"✅ **{site}** (`{user}`) -> [Launch Profile]({url})")
+                else:
+                    st.info("No profile hits found for these variations.")
             with tab2:
-                for site, url in sorted(blocked_profiles): st.warning(f"🟨 **{site}** - Auth Protected -> [Check Manually]({url})")
+                if blocked_profiles:
+                    for site, user, url in sorted(blocked_profiles): 
+                        st.warning(f"🟨 **{site}** (`{user}`) -> Auth Protected -> [Check Manually]({url})")
+                else:
+                    st.info("No login walls encountered.")
             
             st.markdown("---")
-            st.markdown("💡 **Result Intel:** Active hits confirm registered digital accounts with matching identity handles. Guarded networks mean user accounts might exist but are hidden behind strict authorization headers.")
+            st.markdown("💡 **Result Intel:** Active hits confirm registered digital accounts with matching identity handles.")
             
-            report_text = f"--- SHERLOCKLITE OSINT SCAN REPORT ---\nTarget Username: {target_user}\nScan Time: {datetime.now()}\n\n[Active Hits]\n"
-            for site, url in sorted(found_profiles): report_text += f"- {site}: {url}\n"
+            report_text = f"--- SHERLOCKLITE OSINT SCAN REPORT ---\nTarget Base: {target_user}\nScan Time: {datetime.now()}\n\n[Active Hits]\n"
+            for site, user, url in sorted(found_profiles): report_text += f"- {site} ({user}): {url}\n"
             st.download_button("📥 Download Encrypted OSINT Log Report", data=report_text, file_name=f"osint_report_{target_user}.txt")
         else:
             st.error("Please enter a target username!")
@@ -409,4 +428,85 @@ elif module_choice == "📜 Domain Registry & Whois (RDAP)":
                 else:
                     st.error(f"RDAP root registrar missing target response (Code: {response.status_code}). Base root domain verification required.")
             except requests.exceptions.Timeout:
-                st.error
+                st.error("🚨 Public RDAP registry gatekeeper timed out. Network queues are congested. Try again in a few moments.")
+            except Exception as e:
+                st.error(f"Registry connection pipeline error: {e}")
+        else:
+            st.error("Please provide a valid domain string!")
+
+# =========================================================================
+# MODULE 7: SSL/TLS CRYPTOGRAPHIC INSPECTOR
+# =========================================================================
+elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
+    st.title("🔒 SSL/TLS Cryptographic Inspector")
+    st.markdown("> 📌 **Quick Intel:** Connects directly over port 443 to parse certificate validity cycles and validating authorities.")
+
+    ssl_domain = st.text_input("🛡️ Enter Domain Name for SSL Handshake:", placeholder="e.g., free-gst-invoice.netlify.app")
+
+    if st.button("🔒 Trigger Cryptographic Verification"):
+        if ssl_domain.strip():
+            clean_ssl = clean_to_pure_hostname(ssl_domain)
+            
+            if f"SSL: {clean_ssl}" not in st.session_state["scan_history"]:
+                st.session_state["scan_history"].append(f"SSL: {clean_ssl}")
+
+            with st.status("Initiating Advanced TLS Connection...", expanded=True) as status_block:
+                try:
+                    status_block.write(f"🔌 Building TCP Socket channel onto `{clean_ssl}:443`...")
+                    sock = socket.create_connection((clean_ssl, 443), timeout=6)
+                    
+                    status_block.write("🔒 Preparing security engine configuration with modern SNI/ALPN context blocks...")
+                    ctx = ssl.create_default_context()
+                    ctx.set_alpn_protocols(['http/1.1', 'h2'])
+                    
+                    status_block.write("🤝 Negotiating secure cryptographic wrapper keys...")
+                    ssock = ctx.wrap_socket(sock, server_hostname=clean_ssl)
+                    
+                    status_block.write("📜 Parsing active certificate mapping records...")
+                    cert = ssock.getpeercert()
+                    ssock.close()
+                    sock.close()
+                    
+                    if cert:
+                        status_block.update(label="✅ Handshake Complete & Verified!", state="complete")
+                        
+                        issuer_map = {}
+                        try:
+                            for item in cert.get('issuer', []):
+                                for sub_tuple in item:
+                                    if len(sub_tuple) == 2:
+                                        issuer_map[sub_tuple[0]] = sub_tuple[1]
+                        except Exception:
+                            pass
+                                    
+                        issuer_org = issuer_map.get('organizationName', '')
+                        issuer_cn = issuer_map.get('commonName', '')
+                        
+                        if not issuer_org and not issuer_cn:
+                            issuer_string = str(cert.get('issuer', 'Unknown Issuer Certificate Authority'))
+                        else:
+                            issuer_string = f"{issuer_org} ({issuer_cn})".strip(" ()")
+                            
+                        valid_till = cert.get('notAfter', 'N/A')
+                        
+                        col1, col2 = st.columns(2)
+                        with col1: 
+                            st.success(f"🤝 **Verified Issuer CA:**\n\n`{issuer_string}`")
+                        with col2: 
+                            st.error(f"🚨 **Expiration Deadline:**\n\n`{valid_till}`")
+                            
+                        st.markdown("---")
+                        st.markdown("💡 **Result Intel:** Validates active encryption infrastructure keys. Expired keys trigger system browser blocks for incoming client traffic.")
+                        
+                        ssl_report = f"SSL/TLS Cert Audit for {clean_ssl}\nIssuer CA Signature: {issuer_string}\nExpiration Deadline: {valid_till}"
+                        st.download_button("📥 Download Cryptographic Audit Report", data=ssl_report, file_name=f"ssl_audit_{clean_ssl}.txt")
+                    else:
+                        status_block.update(label="⚠️ Handshake complete, but cert data payload is unreadable.", state="error")
+                        st.warning("Handshake complete, but verification payload was unreadable.")
+                        
+                except Exception as e:
+                    status_block.update(label="❌ Handshake Interrupted / Aborted!", state="error")
+                    st.error(f"Secure handshake protocol aborted: {e}")
+                    st.info("💡 **Cyber Context Note:** Modern proxies (like local tunnels or invalid host inputs) might reject external raw TCP handshakes. Ensure the host is publicly addressable on Port 443.")
+        else:
+            st.error("Please insert a target host domain!")
