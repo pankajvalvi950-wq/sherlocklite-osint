@@ -74,7 +74,7 @@ if module_choice == "👤 Username Threat Scanner":
     st.title("👤 Username Threat Scanner")
     st.markdown("> 📌 **Quick Intel:** Maps identical user handles across 18 major digital platforms in parallel.")
 
-    target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., pankaj")
+    target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., pankajvalvi")
 
     websites = {
         "GitHub": {"url": "https://github.com/{}", "redirect": True},
@@ -112,45 +112,32 @@ if module_choice == "👤 Username Threat Scanner":
         except Exception:
             return {"status": "not_found", "site": site_name}
 
-    # 🔥 EXTRA TURBO SCAN BUTTON (Perfect Indentation: 4 Spaces)
     if st.button("⚡ Execute Turbo Fast Scan"):
         if target_user.strip():
-            raw_input = target_user.lower().strip().replace(" ", "")
+            raw_input = target_user.lower().strip()
             if target_user.strip() not in st.session_state["scan_history"]:
-                st.session_state["scan_history"].append(f"Turbo User: {target_user.strip()}")
+                st.session_state["scan_history"].append(f"User: {target_user.strip()}")
             
-            # 🎯 AUTOMATIC SMART VARIATION ENGINE (Your requested examples connected)
-            username_variations = set([
-                raw_input,                 # pankaj
-                f"{raw_input}_ff",          # pankaj_ff
-                f"itz_{raw_input}",         # itz_pankaj
-                f"its_{raw_input}",         # its_pankaj
-                f"{raw_input}_official",    # pankaj_official
-                f"{raw_input}_123"          # pankaj_123
-            ])
-            
-            st.info(f"🔍 Generating patterns: {', '.join(username_variations)}")
+            username_variations = set([raw_input.replace(" ", ""), raw_input.replace(" ", "-"), raw_input.replace(" ", "_")])
             found_profiles, blocked_profiles = [], []
             
-            # Matrix mapping: multiply all variations with all 18 websites
             scan_tasks = [(site, cfg, user) for user in username_variations for site, cfg in websites.items()]
             
             progress_bar = st.progress(0)
             status_text = st.empty()
             total_steps, current_step = len(scan_tasks), 0
             
-            with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
-                futures = {executor.submit(scan_single_site, s, c, u): (s, u) for s, c, u in scan_tasks}
+            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                futures = {executor.submit(scan_single_site, s, c, u): s for s, c, u in scan_tasks}
                 for future in concurrent.futures.as_completed(futures):
                     current_step += 1
                     percent = int((current_step / total_steps) * 100)
                     progress_bar.progress(percent)
-                    site_info, user_info = futures[future]
-                    status_text.text(f"⚡ Testing: {user_info} on {site_info} ({percent}%)")
+                    status_text.text(f"⚡ Probing Nodes... ({percent}%)")
                     
                     res = future.result()
-                    if res["status"] == "found": found_profiles.append((res["site"], user_info, res["url"]))
-                    elif res["status"] == "blocked": blocked_profiles.append((res["site"], user_info, res["url"]))
+                    if res["status"] == "found": found_profiles.append((res["site"], res["url"]))
+                    elif res["status"] == "blocked": blocked_profiles.append((res["site"], res["url"]))
                     
             status_text.success("🎯 Digital footprint mapping pipeline complete!")
             
@@ -160,23 +147,15 @@ if module_choice == "👤 Username Threat Scanner":
             
             tab1, tab2 = st.tabs(["🟢 Active Hits", "🟨 Guarded / Restricted"])
             with tab1:
-                if found_profiles:
-                    for site, user, url in sorted(found_profiles): 
-                        st.success(f"✅ **{site}** (`{user}`) -> [Launch Profile]({url})")
-                else:
-                    st.info("No profile hits found for these variations.")
+                for site, url in sorted(found_profiles): st.success(f"✅ **{site}** - [Launch Profile]({url})")
             with tab2:
-                if blocked_profiles:
-                    for site, user, url in sorted(blocked_profiles): 
-                        st.warning(f"🟨 **{site}** (`{user}`) -> Auth Protected -> [Check Manually]({url})")
-                else:
-                    st.info("No login walls encountered.")
+                for site, url in sorted(blocked_profiles): st.warning(f"🟨 **{site}** - Auth Protected -> [Check Manually]({url})")
             
             st.markdown("---")
-            st.markdown("💡 **Result Intel:** Active hits confirm registered digital accounts with matching identity handles.")
+            st.markdown("💡 **Result Intel:** Active hits confirm registered digital accounts with matching identity handles. Guarded networks mean user accounts might exist but are hidden behind strict authorization headers.")
             
-            report_text = f"--- SHERLOCKLITE OSINT SCAN REPORT ---\nTarget Base: {target_user}\nScan Time: {datetime.now()}\n\n[Active Hits]\n"
-            for site, user, url in sorted(found_profiles): report_text += f"- {site} ({user}): {url}\n"
+            report_text = f"--- SHERLOCKLITE OSINT SCAN REPORT ---\nTarget Username: {target_user}\nScan Time: {datetime.now()}\n\n[Active Hits]\n"
+            for site, url in sorted(found_profiles): report_text += f"- {site}: {url}\n"
             st.download_button("📥 Download Encrypted OSINT Log Report", data=report_text, file_name=f"osint_report_{target_user}.txt")
         else:
             st.error("Please enter a target username!")
@@ -357,6 +336,7 @@ elif module_choice == "🧠 HTTP Header & Security Auditor":
                     st.session_state["scan_history"].append(f"Headers: {url}")
 
                 with st.spinner("Capturing transmission response headers..."):
+                    # Using professional browser footprint header configurations
                     browser_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
                     response = requests.get(url, timeout=6, headers=browser_headers, allow_redirects=True)
                 
@@ -457,7 +437,7 @@ elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
                     
                     status_block.write("🔒 Preparing security engine configuration with modern SNI/ALPN context blocks...")
                     ctx = ssl.create_default_context()
-                    ctx.set_alpn_protocols(['http/1.1', 'h2'])
+                    ctx.set_alpn_protocols(['http/1.1', 'h2'])  # Force alignment with proxies/CDNs to prevent quiet connection drops
                     
                     status_block.write("🤝 Negotiating secure cryptographic wrapper keys...")
                     ssock = ctx.wrap_socket(sock, server_hostname=clean_ssl)
@@ -470,6 +450,7 @@ elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
                     if cert:
                         status_block.update(label="✅ Handshake Complete & Verified!", state="complete")
                         
+                        # Extra-Robust Tuple Parsing Engine to extract authority blocks without crashes
                         issuer_map = {}
                         try:
                             for item in cert.get('issuer', []):
@@ -482,6 +463,7 @@ elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
                         issuer_org = issuer_map.get('organizationName', '')
                         issuer_cn = issuer_map.get('commonName', '')
                         
+                        # Fallback presentation mechanism in case strings parse unstandardized
                         if not issuer_org and not issuer_cn:
                             issuer_string = str(cert.get('issuer', 'Unknown Issuer Certificate Authority'))
                         else:
