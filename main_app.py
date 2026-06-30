@@ -112,12 +112,14 @@ if module_choice == "👤 Username Threat Scanner":
         except Exception:
             return {"status": "not_found", "site": site_name}
 
+    # 🔥 EXTRA TURBO SCAN BUTTON (Properly Indented Inside Module 1)
     if st.button("⚡ Execute Turbo Fast Scan"):
         if target_user.strip():
             raw_input = target_user.lower().strip()
             if target_user.strip() not in st.session_state["scan_history"]:
                 st.session_state["scan_history"].append(f"User: {target_user.strip()}")
             
+            # Username variations engine (spaces, dashes, underscores)
             username_variations = set([raw_input.replace(" ", ""), raw_input.replace(" ", "-"), raw_input.replace(" ", "_")])
             found_profiles, blocked_profiles = [], []
             
@@ -336,7 +338,6 @@ elif module_choice == "🧠 HTTP Header & Security Auditor":
                     st.session_state["scan_history"].append(f"Headers: {url}")
 
                 with st.spinner("Capturing transmission response headers..."):
-                    # Using professional browser footprint header configurations
                     browser_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
                     response = requests.get(url, timeout=6, headers=browser_headers, allow_redirects=True)
                 
@@ -408,87 +409,4 @@ elif module_choice == "📜 Domain Registry & Whois (RDAP)":
                 else:
                     st.error(f"RDAP root registrar missing target response (Code: {response.status_code}). Base root domain verification required.")
             except requests.exceptions.Timeout:
-                st.error("🚨 Public RDAP registry gatekeeper timed out. Network queues are congested. Try again in a few moments.")
-            except Exception as e:
-                st.error(f"Registry connection pipeline error: {e}")
-        else:
-            st.error("Please provide a valid domain string!")
-
-# =========================================================================
-# MODULE 7: SSL/TLS CRYPTOGRAPHIC INSPECTOR
-# =========================================================================
-elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
-    st.title("🔒 SSL/TLS Cryptographic Inspector")
-    st.markdown("> 📌 **Quick Intel:** Connects directly over port 443 to parse certificate validity cycles and validating authorities.")
-
-    ssl_domain = st.text_input("🛡️ Enter Domain Name for SSL Handshake:", placeholder="e.g., free-gst-invoice.netlify.app")
-
-    if st.button("🔒 Trigger Cryptographic Verification"):
-        if ssl_domain.strip():
-            clean_ssl = clean_to_pure_hostname(ssl_domain)
-            
-            if f"SSL: {clean_ssl}" not in st.session_state["scan_history"]:
-                st.session_state["scan_history"].append(f"SSL: {clean_ssl}")
-
-            with st.status("Initiating Advanced TLS Connection...", expanded=True) as status_block:
-                try:
-                    status_block.write(f"🔌 Building TCP Socket channel onto `{clean_ssl}:443`...")
-                    sock = socket.create_connection((clean_ssl, 443), timeout=6)
-                    
-                    status_block.write("🔒 Preparing security engine configuration with modern SNI/ALPN context blocks...")
-                    ctx = ssl.create_default_context()
-                    ctx.set_alpn_protocols(['http/1.1', 'h2'])  # Force alignment with proxies/CDNs to prevent quiet connection drops
-                    
-                    status_block.write("🤝 Negotiating secure cryptographic wrapper keys...")
-                    ssock = ctx.wrap_socket(sock, server_hostname=clean_ssl)
-                    
-                    status_block.write("📜 Parsing active certificate mapping records...")
-                    cert = ssock.getpeercert()
-                    ssock.close()
-                    sock.close()
-                    
-                    if cert:
-                        status_block.update(label="✅ Handshake Complete & Verified!", state="complete")
-                        
-                        # Extra-Robust Tuple Parsing Engine to extract authority blocks without crashes
-                        issuer_map = {}
-                        try:
-                            for item in cert.get('issuer', []):
-                                for sub_tuple in item:
-                                    if len(sub_tuple) == 2:
-                                        issuer_map[sub_tuple[0]] = sub_tuple[1]
-                        except Exception:
-                            pass
-                                    
-                        issuer_org = issuer_map.get('organizationName', '')
-                        issuer_cn = issuer_map.get('commonName', '')
-                        
-                        # Fallback presentation mechanism in case strings parse unstandardized
-                        if not issuer_org and not issuer_cn:
-                            issuer_string = str(cert.get('issuer', 'Unknown Issuer Certificate Authority'))
-                        else:
-                            issuer_string = f"{issuer_org} ({issuer_cn})".strip(" ()")
-                            
-                        valid_till = cert.get('notAfter', 'N/A')
-                        
-                        col1, col2 = st.columns(2)
-                        with col1: 
-                            st.success(f"🤝 **Verified Issuer CA:**\n\n`{issuer_string}`")
-                        with col2: 
-                            st.error(f"🚨 **Expiration Deadline:**\n\n`{valid_till}`")
-                            
-                        st.markdown("---")
-                        st.markdown("💡 **Result Intel:** Validates active encryption infrastructure keys. Expired keys trigger system browser blocks for incoming client traffic.")
-                        
-                        ssl_report = f"SSL/TLS Cert Audit for {clean_ssl}\nIssuer CA Signature: {issuer_string}\nExpiration Deadline: {valid_till}"
-                        st.download_button("📥 Download Cryptographic Audit Report", data=ssl_report, file_name=f"ssl_audit_{clean_ssl}.txt")
-                    else:
-                        status_block.update(label="⚠️ Handshake complete, but cert data payload is unreadable.", state="error")
-                        st.warning("Handshake complete, but verification payload was unreadable.")
-                        
-                except Exception as e:
-                    status_block.update(label="❌ Handshake Interrupted / Aborted!", state="error")
-                    st.error(f"Secure handshake protocol aborted: {e}")
-                    st.info("💡 **Cyber Context Note:** Modern proxies (like local tunnels or invalid host inputs) might reject external raw TCP handshakes. Ensure the host is publicly addressable on Port 443.")
-        else:
-            st.error("Please insert a target host domain!")
+                st.error
