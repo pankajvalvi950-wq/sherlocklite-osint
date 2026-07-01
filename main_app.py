@@ -67,160 +67,94 @@ if st.session_state["scan_history"]:
 else:
     st.sidebar.info("No active logs registered.")
 
-# =========================================================================
-# MODULE 1: USERNAME THREAT SCANNER
-# =========================================================================
+# --- Module 1 के स्टार्टिंग में Session State इनिशियलाइज़ करें ---
+if "osint_results" not in st.session_state:
+    st.session_state["osint_results"] = None
+
 if module_choice == "👤 Username Threat Scanner":
     st.title("👤 Username Threat Scanner")
     st.markdown("> 📌 **Quick Intel:** Maps identical user handles across 18 major digital platforms in parallel.")
 
-    if "m1_results" not in st.session_state:
-        st.session_state["m1_results"] = None
+    target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., pankajvalvi")
 
-    target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., pankaj", key="m1_username_input")
+    # ... (बाकी websites dict और scan_single_site function सेम रहेगा) ...
 
-    websites = {
-        "GitHub": {"url": "https://github.com/{}", "redirect": True},
-        "GitLab": {"url": "https://gitlab.com/{}", "redirect": True},
-        "Dev.to": {"url": "https://dev.to/{}", "redirect": True},
-        "HackerRank": {"url": "https://www.hackerrank.com/profile/{}", "redirect": True},
-        "Medium": {"url": "https://medium.com/@{}", "redirect": False},
-        "Instagram": {"url": "https://www.instagram.com/{}/", "redirect": False},   
-        "X (Twitter)": {"url": "https://x.com/{}", "redirect": False},
-        "LinkedIn": {"url": "https://www.linkedin.com/in/{}", "redirect": False},
-        "Snapchat": {"url": "https://www.snapchat.com/add/{}", "redirect": True},    
-        "Pinterest": {"url": "https://www.pinterest.com/{}/", "redirect": True},     
-        "Twitch": {"url": "https://www.twitch.tv/{}", "redirect": True},
-        "Spotify": {"url": "https://open.spotify.com/user/{}", "redirect": True},
-        "SoundCloud": {"url": "https://soundcloud.com/{}", "redirect": True},
-        "Chess.com": {"url": "https://www.chess.com/member/{}", "redirect": True},
-        "Wikipedia": {"url": "https://en.wikipedia.org/wiki/User:{}", "redirect": True},
-        "Reddit": {"url": "https://www.reddit.com/user/{}.json", "redirect": True}, 
-        "Bio.link": {"url": "https://bio.link/{}", "redirect": True},
-        "Linktree": {"url": "https://linktr.ee/{}", "redirect": True}
-    }
-
-    def scan_single_site(site_name, config, username):
-        target_url = config["url"].format(username)
-        current_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        try:
-            response = requests.get(target_url, headers=current_headers, timeout=5, allow_redirects=config["redirect"])
-            if response.status_code == 200:
-                if "reddit" in target_url and "error" in response.text:
-                    return {"status": "not_found", "site": site_name}
-                return {"status": "found", "site": site_name, "url": target_url}
-            elif response.status_code in [429, 999, 403]:
-                return {"status": "blocked", "site": site_name, "url": target_url}
-            return {"status": "not_found", "site": site_name}
-        except Exception:
-            return {"status": "not_found", "site": site_name}
-
-    # Parallel Button Control Layout
-    m1_col_b1, m1_col_b2 = st.columns(2)
-    with m1_col_b1:
-        scan_clicked = st.button("⚡ Execute Turbo Fast Scan", key="m1_turbo_scan_btn", use_container_width=True)
-    with m1_col_b2:
-        clear_clicked = st.button("🗑️ Clear Results", key="m1_clear_btn", use_container_width=True)
-
-    if clear_clicked:
-        st.session_state["m1_results"] = None
-        st.rerun()
-
-    if scan_clicked:
+    if st.button("⚡ Execute Turbo Fast Scan"):
         if target_user.strip():
-            raw_input = target_user.lower().strip().replace(" ", "")
+            raw_input = target_user.lower().strip()
             if target_user.strip() not in st.session_state["scan_history"]:
-                st.session_state["scan_history"].append(f"Turbo User: {target_user.strip()}")
+                st.session_state["scan_history"].append(f"User: {target_user.strip()}")
             
-            username_variations = set([
-                raw_input, f"{raw_input}_ff", f"itz_{raw_input}", f"its_{raw_input}", f"{raw_input}_official", f"{raw_input}_123"
-            ])
-            
-            st.info(f"🔍 Generating patterns: {', '.join(username_variations)}")
+            username_variations = set([raw_input.replace(" ", ""), raw_input.replace(" ", "-"), raw_input.replace(" ", "_")])
             found_profiles, blocked_profiles = [], []
+            
             scan_tasks = [(site, cfg, user) for user in username_variations for site, cfg in websites.items()]
             
             progress_bar = st.progress(0)
             status_text = st.empty()
             total_steps, current_step = len(scan_tasks), 0
             
-            with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
-                futures = {executor.submit(scan_single_site, s, c, u): (s, u) for s, c, u in scan_tasks}
+            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                futures = {executor.submit(scan_single_site, s, c, u): s for s, c, u in scan_tasks}
                 for future in concurrent.futures.as_completed(futures):
                     current_step += 1
                     percent = int((current_step / total_steps) * 100)
                     progress_bar.progress(percent)
-                    site_info, user_info = futures[future]
-                    status_text.text(f"⚡ Testing: {user_info} on {site_info} ({percent}%)")
+                    status_text.text(f"⚡ Probing Nodes... ({percent}%)")
                     
                     res = future.result()
-                    if res["status"] == "found": found_profiles.append((res["site"], user_info, res["url"]))
-                    elif res["status"] == "blocked": blocked_profiles.append((res["site"], user_info, res["url"]))
-                    
-            status_text.empty()
-            progress_bar.empty()
+                    if res["status"] == "found": found_profiles.append((res["site"], res["url"]))
+                    elif res["status"] == "blocked": blocked_profiles.append((res["site"], res["url"]))
             
-            st.session_state["m1_results"] = {
+            # 🟢 बदलाव यहाँ है: रिज़ल्ट को session_state में सेव करें
+            st.session_state["osint_results"] = {
                 "found": found_profiles,
                 "blocked": blocked_profiles,
-                "target": target_user
+                "user": target_user
             }
+            status_text.success("🎯 Digital footprint mapping pipeline complete!")
         else:
             st.error("Please enter a target username!")
 
-    # Stable Render Block
-    if st.session_state["m1_results"]:
-        res = st.session_state["m1_results"]
-        st.success("🎯 Digital footprint mapping pipeline complete!")
+    # 🟢 बटन के बाहर रिज़ल्ट्स को रेंडर करें ताकि क्लिक करने पर गायब न हों
+    if st.session_state["osint_results"] is not None:
+        res_data = st.session_state["osint_results"]
+        found_profiles = res_data["found"]
+        blocked_profiles = res_data["blocked"]
+        target_user = res_data["user"]
+
         m_col1, m_col2 = st.columns(2)
-        m_col1.metric("🟢 Live Active Accounts", f"{len(res['found'])} Hits")
-        m_col2.metric("🟡 Guarded/Login Walls", f"{len(res['blocked'])} Nodes")
+        m_col1.metric("🟢 Live Active Accounts", f"{len(found_profiles)} Hits")
+        m_col2.metric("🟡 Guarded/Login Walls", f"{len(blocked_profiles)} Nodes")
         
         tab1, tab2 = st.tabs(["🟢 Active Hits", "🟨 Guarded / Restricted"])
         with tab1:
-            if res["found"]:
-                for site, user, url in sorted(res["found"]): 
-                    st.success(f"✅ **{site}** (`{user}`) -> [Launch Profile]({url})")
-            else:
-                st.info("No profile hits found for these variations.")
+            for site, url in sorted(found_profiles): st.success(f"✅ **{site}** - [Launch Profile]({url})")
         with tab2:
-            if res["blocked"]:
-                for site, user, url in sorted(res["blocked"]): 
-                    st.warning(f"🟨 **{site}** (`{user}`) -> Auth Protected -> [Check Manually]({url})")
-            else:
-                st.info("No login walls encountered.")
+            for site, url in sorted(blocked_profiles): st.warning(f"🟨 **{site}** - Auth Protected -> [Check Manually]({url})")
         
         st.markdown("---")
         st.markdown("💡 **Result Intel:** Active hits confirm registered digital accounts with matching identity handles.")
-        report_text = f"--- SHERLOCKLITE OSINT SCAN REPORT ---\nTarget Base: {res['target']}\nScan Time: {datetime.now()}\n\n[Active Hits]\n"
-        for site, user, url in sorted(res["found"]): report_text += f"- {site} ({user}): {url}\n"
-        st.download_button("📥 Download Encrypted OSINT Log Report", data=report_text, file_name=f"osint_report_{res['target']}.txt", key="m1_download_report_btn")
+        
+        report_text = f"--- SHERLOCKLITE OSINT SCAN REPORT ---\nTarget Username: {target_user}\nScan Time: {datetime.now()}\n\n[Active Hits]\n"
+        for site, url in sorted(found_profiles): report_text += f"- {site}: {url}\n"
+        
+        # अब यह डाउनलोड बटन मक्खन की तरह काम करेगा!
+        st.download_button("📥 Download Encrypted OSINT Log Report", data=report_text, file_name=f"osint_report_{target_user}.txt")
 
-# =========================================================================
-# MODULE 2: LIVE IP INTELLIGENCE TRACKER
-# =========================================================================
+# --- Module 2 के स्टार्टिंग में Session State इनिशियलाइज़ करें ---
+if "ip_results" not in st.session_state:
+    st.session_state["ip_results"] = None
+
 elif module_choice == "🌐 IP Intelligence Tracker":
     st.title("🌐 IP Intelligence Tracker")
     st.markdown("> 📌 **Quick Intel:** Extracts geographical location, ISP data, ASN routes, and coordinates from any public IP or domain.")
 
-    if "m2_results" not in st.session_state:
-        st.session_state["m2_results"] = None
+    ip_input = st.text_input("📡 Enter Target IP Address or Domain Name:", placeholder="e.g., 8.8.8.8 or netlify.app")
 
-    ip_input = st.text_input("📡 Enter Target IP Address or Domain Name:", placeholder="e.g., 8.8.8.8 or netlify.app", key="m2_ip_input")
-
-    m2_col_b1, m2_col_b2 = st.columns(2)
-    with m2_col_b1:
-        trace_clicked = st.button("🔍 Trace IP Address", key="m2_trace_ip_btn", use_container_width=True)
-    with m2_col_b2:
-        clear_clicked = st.button("🗑️ Clear Results", key="m2_clear_btn", use_container_width=True)
-
-    if clear_clicked:
-        st.session_state["m2_results"] = None
-        st.rerun()
-
-    if trace_clicked:
+    if st.button("🔍 Trace IP Address"):
         if ip_input.strip():
-            with st.spinner("Resolving destination routes and querying global geolocation nodes..."):
+            with st.spinner("Resolving destination routes..."):
                 try:
                     clean_target = clean_to_pure_hostname(ip_input)
                     try:
@@ -236,8 +170,12 @@ elif module_choice == "🌐 IP Intelligence Tracker":
                         if f"IP: {target_ip}" not in st.session_state["scan_history"]:
                             st.session_state["scan_history"].append(f"IP: {target_ip}")
                         
-                        st.session_state["m2_results"] = {
-                            "response": response, "target_ip": target_ip, "clean_target": clean_target, "ip_input": ip_input
+                        # 🟢 रिज़ल्ट को state में सेव करें
+                        st.session_state["ip_results"] = {
+                            "response": response,
+                            "target_ip": target_ip,
+                            "clean_target": clean_target,
+                            "ip_input": ip_input
                         }
                     else:
                         st.error(f"🛑 Scan Failed: {response.get('message', 'Unknown Node Error')}")
@@ -246,23 +184,25 @@ elif module_choice == "🌐 IP Intelligence Tracker":
         else:
             st.error("Please provide an IP address or domain!")
 
-    if st.session_state["m2_results"]:
-        res = st.session_state["m2_results"]
-        st.success(f"🎯 Target Acquired: {res['target_ip']} ({res['clean_target']})")
+    # 🟢 रिज़ल्ट डिस्प्ले बटन के बाहर होगा
+    if st.session_state["ip_results"] is not None:
+        ip_data = st.session_state["ip_results"]
+        resp = ip_data["response"]
+        
+        st.success(f"🎯 Target Acquired: {ip_data['target_ip']} ({ip_data['clean_target']})")
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown(f"**🌍 Country:** {res['response'].get('country')} ({res['response'].get('countryCode')})")
-            st.markdown(f"**🏙️ Region:** {res['response'].get('regionName')}")
-            st.markdown(f"**📍 City Name:** {res['response'].get('city')}")
+            st.markdown(f"**🌍 Country:** {resp.get('country')} ({resp.get('countryCode')})")
+            st.markdown(f"**🏙️ Region:** {resp.get('regionName')}")
+            st.markdown(f"**📍 City Name:** {resp.get('city')}")
         with col2:
-            st.markdown(f"**🏢 ISP / Provider:** {res['response'].get('isp')}")
-            st.markdown(f"**📡 Timezone:** {res['response'].get('timezone')}")
-            st.markdown(f"**🛰️ Coordinates:** `{res['response'].get('lat')}, {res['response'].get('lon')}`")
+            st.markdown(f"**🏢 ISP / Provider:** {resp.get('isp')}")
+            st.markdown(f"**📡 Timezone:** {resp.get('timezone')}")
+            st.markdown(f"**🛰️ Coordinates:** `{resp.get('lat')}, {resp.get('lon')}`")
         
         st.markdown("---")
-        st.markdown("💡 **Result Intel:** Geolocation values show routing checkpoints assigned by regional Internet Service Providers (ISPs), pinpointing network origin coordinates.")
-        report_data = f"IP Intelligence Audit:\nTarget Input: {res['ip_input']}\nResolved IP: {res['target_ip']}\nLocation: {res['response'].get('city')}, {res['response'].get('country')}\nISP: {res['response'].get('isp')}"
-        st.download_button("📥 Download IP Intelligence Log", data=report_data, file_name=f"ip_intel_{res['target_ip']}.txt", key="m2_download_report_btn")
+        report_data = f"IP Intelligence Audit:\nTarget Input: {ip_data['ip_input']}\nResolved IP: {ip_data['target_ip']}\nLocation: {resp.get('city')}, {resp.get('country')}\nISP: {resp.get('isp')}"
+        st.download_button("📥 Download IP Intelligence Log", data=report_data, file_name=f"ip_intel_{ip_data['target_ip']}.txt")
 
 # =========================================================================
 # MODULE 3: TACTICAL PORT SCANNER
