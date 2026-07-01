@@ -101,6 +101,7 @@ if module_choice == "👤 Username Threat Scanner":
         target_url = config["url"].format(username)
         current_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
         try:
+            time.sleep(random.uniform(1.0, 3.0))
             response = requests.get(target_url, headers=current_headers, timeout=5, allow_redirects=config["redirect"])
             if response.status_code == 200:
                 if "reddit" in target_url and "error" in response.text:
