@@ -19,7 +19,6 @@ def clean_to_pure_hostname(input_str):
         return ""
     clean = input_str.strip().lower()
     clean = clean.replace("https://", "").replace("http://", "").replace("www.", "")
-    # Remove paths, query strings, or port numbers
     clean = clean.split("/")[0].split(":")[0].split("?")[0]
     return clean
 
@@ -28,14 +27,13 @@ def clean_to_root_domain(input_str):
     hostname = clean_to_pure_hostname(input_str)
     parts = hostname.split(".")
     if len(parts) > 2:
-        # Handling common second-level domains (e.g., co.uk, com.in)
         if parts[-2] in ["com", "co", "org", "net", "gov", "edu", "ac", "res"] and parts[-1] in ["in", "uk", "br", "au", "za", "ru"]:
             return ".".join(parts[-3:])
         return ".".join(parts[-2:])
     return hostname
 
 # =========================================================================
-# GLOBAL SESSION STATE INITIALIZATION (सर्वप्रथम सुरक्षित शुरुआत)
+# GLOBAL SESSION STATE INITIALIZATION (अटूट और सुरक्षित शुरुआत)
 # =========================================================================
 session_vars = [
     "scan_history", "osint_results", "ip_results", 
@@ -192,7 +190,7 @@ if module_choice == "👤 Username Threat Scanner":
         st.download_button("📥 Download Encrypted OSINT Log Report", data=report_text, file_name=f"osint_report_{current_target}.txt", key="download_m1_report")
 
 # =========================================================================
-# MODULE 2: IP INTELLIGENCE TRACKER (बिना रुकावट एकदम अटूट)
+# MODULE 2: IP INTELLIGENCE TRACKER
 # =========================================================================
 elif module_choice == "🌐 IP Intelligence Tracker":
     st.title("🌐 IP Intelligence Tracker")
