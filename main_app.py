@@ -74,7 +74,7 @@ if module_choice == "👤 Username Threat Scanner":
     st.title("👤 Username Threat Scanner")
     st.markdown("> 📌 **Quick Intel:** Maps identical user handles across 18 major digital platforms in parallel.")
 
-    target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., pankajvalvi")
+    target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., Cristiano Ronaldo")
 
     websites = {
         "GitHub": {"url": "https://github.com/{}", "redirect": True},
@@ -169,7 +169,7 @@ elif module_choice == "🌐 IP Intelligence Tracker":
     st.title("🌐 IP Intelligence Tracker")
     st.markdown("> 📌 **Quick Intel:** Extracts geographical location, ISP data, ASN routes, and coordinates from any public IP or domain.")
 
-    ip_input = st.text_input("📡 Enter Target IP Address or Domain Name:", placeholder="e.g., 8.8.8.8 or netlify.app")
+    ip_input = st.text_input("📡 Enter Target IP Address or Domain Name:", placeholder="e.g., 8.8.8.8 or streamlit.app")
 
     if st.button("🔍 Trace IP Address"):
         if ip_input.strip():
@@ -374,7 +374,7 @@ elif module_choice == "📜 Domain Registry & Whois (RDAP)":
     st.title("📜 Domain Registry & Whois (RDAP)")
     st.markdown("> 📌 **Quick Intel:** Direct RDAP query mechanism to extract official registrar logs, registration dates, and expiry checkpoints.")
 
-    input_domain = st.text_input("📝 Enter Target Domain Name:", placeholder="e.g., netlify.app")
+    input_domain = st.text_input("📝 Enter Target Domain Name:", placeholder="e.g., streamlit.app")
 
     if st.button("🔍 Pull Registry Metadata"):
         if input_domain.strip():
