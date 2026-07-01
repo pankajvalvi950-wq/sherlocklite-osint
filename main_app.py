@@ -77,7 +77,6 @@ if module_choice == "👤 Username Threat Scanner":
     target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., pankajvalvi")
 
     websites = {
-        "instagram: {"url": "https://instagram.com/{}": True},
         "GitHub": {"url": "https://github.com/{}", "redirect": True},
         "GitLab": {"url": "https://gitlab.com/{}", "redirect": True},
         "Dev.to": {"url": "https://dev.to/{}", "redirect": True},
@@ -100,14 +99,15 @@ if module_choice == "👤 Username Threat Scanner":
 
     def scan_single_site(site_name, config, username):
         target_url = config["url"].format(username)
-        current_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        current_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
         try:
             response = requests.get(target_url, headers=current_headers, timeout=5, allow_redirects=config["redirect"])
             if response.status_code == 200:
                 if "reddit" in target_url and "error" in response.text:
                     return {"status": "not_found", "site": site_name}
                 return {"status": "found", "site": site_name, "url": target_url}
-            elif response.status_code in [429, 999, 403]:
+            # YAHAN BADLAV KIYA HAI: 301, 302 aur 401 ko add kiya hai taki Instagram redirect hone par sahi se catch ho sake
+            elif response.status_code in [301, 302, 401, 403, 429, 999]:
                 return {"status": "blocked", "site": site_name, "url": target_url}
             return {"status": "not_found", "site": site_name}
         except Exception:
@@ -337,7 +337,6 @@ elif module_choice == "🧠 HTTP Header & Security Auditor":
                     st.session_state["scan_history"].append(f"Headers: {url}")
 
                 with st.spinner("Capturing transmission response headers..."):
-                    # Using professional browser footprint header configurations
                     browser_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
                     response = requests.get(url, timeout=6, headers=browser_headers, allow_redirects=True)
                 
@@ -438,7 +437,7 @@ elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
                     
                     status_block.write("🔒 Preparing security engine configuration with modern SNI/ALPN context blocks...")
                     ctx = ssl.create_default_context()
-                    ctx.set_alpn_protocols(['http/1.1', 'h2'])  # Force alignment with proxies/CDNs to prevent quiet connection drops
+                    ctx.set_alpn_protocols(['http/1.1', 'h2']) 
                     
                     status_block.write("🤝 Negotiating secure cryptographic wrapper keys...")
                     ssock = ctx.wrap_socket(sock, server_hostname=clean_ssl)
@@ -451,7 +450,6 @@ elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
                     if cert:
                         status_block.update(label="✅ Handshake Complete & Verified!", state="complete")
                         
-                        # Extra-Robust Tuple Parsing Engine to extract authority blocks without crashes
                         issuer_map = {}
                         try:
                             for item in cert.get('issuer', []):
@@ -464,7 +462,6 @@ elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
                         issuer_org = issuer_map.get('organizationName', '')
                         issuer_cn = issuer_map.get('commonName', '')
                         
-                        # Fallback presentation mechanism in case strings parse unstandardized
                         if not issuer_org and not issuer_cn:
                             issuer_string = str(cert.get('issuer', 'Unknown Issuer Certificate Authority'))
                         else:
