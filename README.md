@@ -2,7 +2,7 @@
 
 Sovereign Cyber Panel is an advanced **Open Source Intelligence (OSINT)** dashboard built for security researchers and investigators to track and map digital footprints across the web efficiently.
 
-🚀 **Live Web Application:** [https://sherlocklite-osint.streamlit.app](https://sherlocklite-osint.streamlit.app)
+🚀 **Live Web Application:** [https://sherlock-lite-cyber.streamlit.app/](https://sherlock-lite-cyber.streamlit.app/)
 
 ---
 
