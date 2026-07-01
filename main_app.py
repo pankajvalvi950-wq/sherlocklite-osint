@@ -74,7 +74,9 @@ if module_choice == "👤 Username Threat Scanner":
     st.title("👤 Username Threat Scanner")
     st.markdown("> 📌 **Quick Intel:** Maps identical user handles across 18 major digital platforms in parallel.")
 
-    # Added unique key to prevent input cross-bleeding
+    if "m1_results" not in st.session_state:
+        st.session_state["m1_results"] = None
+
     target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., pankaj", key="m1_username_input")
 
     websites = {
@@ -113,26 +115,29 @@ if module_choice == "👤 Username Threat Scanner":
         except Exception:
             return {"status": "not_found", "site": site_name}
 
-    # Added unique key for the button execution isolation
-    if st.button("⚡ Execute Turbo Fast Scan", key="m1_turbo_scan_btn"):
+    # Parallel Button Control Layout
+    m1_col_b1, m1_col_b2 = st.columns(2)
+    with m1_col_b1:
+        scan_clicked = st.button("⚡ Execute Turbo Fast Scan", key="m1_turbo_scan_btn", use_container_width=True)
+    with m1_col_b2:
+        clear_clicked = st.button("🗑️ Clear Results", key="m1_clear_btn", use_container_width=True)
+
+    if clear_clicked:
+        st.session_state["m1_results"] = None
+        st.rerun()
+
+    if scan_clicked:
         if target_user.strip():
             raw_input = target_user.lower().strip().replace(" ", "")
             if target_user.strip() not in st.session_state["scan_history"]:
                 st.session_state["scan_history"].append(f"Turbo User: {target_user.strip()}")
             
-            # AUTOMATIC SMART VARIATION ENGINE (Connected as specified)
             username_variations = set([
-                raw_input,                 # pankaj
-                f"{raw_input}_ff",          # pankaj_ff
-                f"itz_{raw_input}",         # itz_pankaj
-                f"its_{raw_input}",         # its_pankaj
-                f"{raw_input}_official",    # pankaj_official
-                f"{raw_input}_123"          # pankaj_123
+                raw_input, f"{raw_input}_ff", f"itz_{raw_input}", f"its_{raw_input}", f"{raw_input}_official", f"{raw_input}_123"
             ])
             
             st.info(f"🔍 Generating patterns: {', '.join(username_variations)}")
             found_profiles, blocked_profiles = [], []
-            
             scan_tasks = [(site, cfg, user) for user in username_variations for site, cfg in websites.items()]
             
             progress_bar = st.progress(0)
@@ -152,34 +157,44 @@ if module_choice == "👤 Username Threat Scanner":
                     if res["status"] == "found": found_profiles.append((res["site"], user_info, res["url"]))
                     elif res["status"] == "blocked": blocked_profiles.append((res["site"], user_info, res["url"]))
                     
-            status_text.success("🎯 Digital footprint mapping pipeline complete!")
+            status_text.empty()
+            progress_bar.empty()
             
-            m_col1, m_col2 = st.columns(2)
-            m_col1.metric("🟢 Live Active Accounts", f"{len(found_profiles)} Hits")
-            m_col2.metric("🟡 Guarded/Login Walls", f"{len(blocked_profiles)} Nodes")
-            
-            tab1, tab2 = st.tabs(["🟢 Active Hits", "🟨 Guarded / Restricted"])
-            with tab1:
-                if found_profiles:
-                    for site, user, url in sorted(found_profiles): 
-                        st.success(f"✅ **{site}** (`{user}`) -> [Launch Profile]({url})")
-                else:
-                    st.info("No profile hits found for these variations.")
-            with tab2:
-                if blocked_profiles:
-                    for site, user, url in sorted(blocked_profiles): 
-                        st.warning(f"🟨 **{site}** (`{user}`) -> Auth Protected -> [Check Manually]({url})")
-                else:
-                    st.info("No login walls encountered.")
-            
-            st.markdown("---")
-            st.markdown("💡 **Result Intel:** Active hits confirm registered digital accounts with matching identity handles.")
-            
-            report_text = f"--- SHERLOCKLITE OSINT SCAN REPORT ---\nTarget Base: {target_user}\nScan Time: {datetime.now()}\n\n[Active Hits]\n"
-            for site, user, url in sorted(found_profiles): report_text += f"- {site} ({user}): {url}\n"
-            st.download_button("📥 Download Encrypted OSINT Log Report", data=report_text, file_name=f"osint_report_{target_user}.txt", key="m1_download_report_btn")
+            st.session_state["m1_results"] = {
+                "found": found_profiles,
+                "blocked": blocked_profiles,
+                "target": target_user
+            }
         else:
             st.error("Please enter a target username!")
+
+    # Stable Render Block
+    if st.session_state["m1_results"]:
+        res = st.session_state["m1_results"]
+        st.success("🎯 Digital footprint mapping pipeline complete!")
+        m_col1, m_col2 = st.columns(2)
+        m_col1.metric("🟢 Live Active Accounts", f"{len(res['found'])} Hits")
+        m_col2.metric("🟡 Guarded/Login Walls", f"{len(res['blocked'])} Nodes")
+        
+        tab1, tab2 = st.tabs(["🟢 Active Hits", "🟨 Guarded / Restricted"])
+        with tab1:
+            if res["found"]:
+                for site, user, url in sorted(res["found"]): 
+                    st.success(f"✅ **{site}** (`{user}`) -> [Launch Profile]({url})")
+            else:
+                st.info("No profile hits found for these variations.")
+        with tab2:
+            if res["blocked"]:
+                for site, user, url in sorted(res["blocked"]): 
+                    st.warning(f"🟨 **{site}** (`{user}`) -> Auth Protected -> [Check Manually]({url})")
+            else:
+                st.info("No login walls encountered.")
+        
+        st.markdown("---")
+        st.markdown("💡 **Result Intel:** Active hits confirm registered digital accounts with matching identity handles.")
+        report_text = f"--- SHERLOCKLITE OSINT SCAN REPORT ---\nTarget Base: {res['target']}\nScan Time: {datetime.now()}\n\n[Active Hits]\n"
+        for site, user, url in sorted(res["found"]): report_text += f"- {site} ({user}): {url}\n"
+        st.download_button("📥 Download Encrypted OSINT Log Report", data=report_text, file_name=f"osint_report_{res['target']}.txt", key="m1_download_report_btn")
 
 # =========================================================================
 # MODULE 2: LIVE IP INTELLIGENCE TRACKER
@@ -188,9 +203,22 @@ elif module_choice == "🌐 IP Intelligence Tracker":
     st.title("🌐 IP Intelligence Tracker")
     st.markdown("> 📌 **Quick Intel:** Extracts geographical location, ISP data, ASN routes, and coordinates from any public IP or domain.")
 
+    if "m2_results" not in st.session_state:
+        st.session_state["m2_results"] = None
+
     ip_input = st.text_input("📡 Enter Target IP Address or Domain Name:", placeholder="e.g., 8.8.8.8 or netlify.app", key="m2_ip_input")
 
-    if st.button("🔍 Trace IP Address", key="m2_trace_ip_btn"):
+    m2_col_b1, m2_col_b2 = st.columns(2)
+    with m2_col_b1:
+        trace_clicked = st.button("🔍 Trace IP Address", key="m2_trace_ip_btn", use_container_width=True)
+    with m2_col_b2:
+        clear_clicked = st.button("🗑️ Clear Results", key="m2_clear_btn", use_container_width=True)
+
+    if clear_clicked:
+        st.session_state["m2_results"] = None
+        st.rerun()
+
+    if trace_clicked:
         if ip_input.strip():
             with st.spinner("Resolving destination routes and querying global geolocation nodes..."):
                 try:
@@ -208,22 +236,9 @@ elif module_choice == "🌐 IP Intelligence Tracker":
                         if f"IP: {target_ip}" not in st.session_state["scan_history"]:
                             st.session_state["scan_history"].append(f"IP: {target_ip}")
                         
-                        st.success(f"🎯 Target Acquired: {target_ip} ({clean_target})")
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.markdown(f"**🌍 Country:** {response.get('country')} ({response.get('countryCode')})")
-                            st.markdown(f"**🏙️ Region:** {response.get('regionName')}")
-                            st.markdown(f"**📍 City Name:** {response.get('city')}")
-                        with col2:
-                            st.markdown(f"**🏢 ISP / Provider:** {response.get('isp')}")
-                            st.markdown(f"**📡 Timezone:** {response.get('timezone')}")
-                            st.markdown(f"**🛰️ Coordinates:** `{response.get('lat')}, {response.get('lon')}`")
-                        
-                        st.markdown("---")
-                        st.markdown("💡 **Result Intel:** Geolocation values show routing checkpoints assigned by regional Internet Service Providers (ISPs), pinpointing network origin coordinates.")
-                        
-                        report_data = f"IP Intelligence Audit:\nTarget Input: {ip_input}\nResolved IP: {target_ip}\nLocation: {response.get('city')}, {response.get('country')}\nISP: {response.get('isp')}"
-                        st.download_button("📥 Download IP Intelligence Log", data=report_data, file_name=f"ip_intel_{target_ip}.txt", key="m2_download_report_btn")
+                        st.session_state["m2_results"] = {
+                            "response": response, "target_ip": target_ip, "clean_target": clean_target, "ip_input": ip_input
+                        }
                     else:
                         st.error(f"🛑 Scan Failed: {response.get('message', 'Unknown Node Error')}")
                 except Exception as e:
@@ -231,12 +246,33 @@ elif module_choice == "🌐 IP Intelligence Tracker":
         else:
             st.error("Please provide an IP address or domain!")
 
+    if st.session_state["m2_results"]:
+        res = st.session_state["m2_results"]
+        st.success(f"🎯 Target Acquired: {res['target_ip']} ({res['clean_target']})")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown(f"**🌍 Country:** {res['response'].get('country')} ({res['response'].get('countryCode')})")
+            st.markdown(f"**🏙️ Region:** {res['response'].get('regionName')}")
+            st.markdown(f"**📍 City Name:** {res['response'].get('city')}")
+        with col2:
+            st.markdown(f"**🏢 ISP / Provider:** {res['response'].get('isp')}")
+            st.markdown(f"**📡 Timezone:** {res['response'].get('timezone')}")
+            st.markdown(f"**🛰️ Coordinates:** `{res['response'].get('lat')}, {res['response'].get('lon')}`")
+        
+        st.markdown("---")
+        st.markdown("💡 **Result Intel:** Geolocation values show routing checkpoints assigned by regional Internet Service Providers (ISPs), pinpointing network origin coordinates.")
+        report_data = f"IP Intelligence Audit:\nTarget Input: {res['ip_input']}\nResolved IP: {res['target_ip']}\nLocation: {res['response'].get('city')}, {res['response'].get('country')}\nISP: {res['response'].get('isp')}"
+        st.download_button("📥 Download IP Intelligence Log", data=report_data, file_name=f"ip_intel_{res['target_ip']}.txt", key="m2_download_report_btn")
+
 # =========================================================================
 # MODULE 3: TACTICAL PORT SCANNER
 # =========================================================================
 elif module_choice == "🛡️ Tactical Port Scanner":
     st.title("🛡️ Tactical Port Scanner")
     st.markdown("> 📌 **Quick Intel:** Probes critical ports to detect open communication channels and active service signatures.")
+
+    if "m3_results" not in st.session_state:
+        st.session_state["m3_results"] = None
 
     target_host = st.text_input("💻 Enter Target Domain / Host IP:", placeholder="e.g., scanme.nmap.org", key="m3_host_input")
 
@@ -255,7 +291,17 @@ elif module_choice == "🛡️ Tactical Port Scanner":
         except Exception:
             return {"port": port, "status": "CLOSED", "service": service_name}
 
-    if st.button("⚡ Trigger Stealth Port Audit", key="m3_port_audit_btn"):
+    m3_col_b1, m3_col_b2 = st.columns(2)
+    with m3_col_b1:
+        scan_clicked = st.button("⚡ Trigger Stealth Port Audit", key="m3_port_audit_btn", use_container_width=True)
+    with m3_col_b2:
+        clear_clicked = st.button("🗑️ Clear Results", key="m3_clear_btn", use_container_width=True)
+
+    if clear_clicked:
+        st.session_state["m3_results"] = None
+        st.rerun()
+
+    if scan_clicked:
         if target_host.strip():
             clean_host = clean_to_pure_hostname(target_host)
             if f"Ports: {clean_host}" not in st.session_state["scan_history"]:
@@ -269,23 +315,25 @@ elif module_choice == "🛡️ Tactical Port Scanner":
                         res = future.result()
                         if res["status"] == "OPEN": open_ports.append(res)
                         else: closed_ports.append(res)
-            
-            p_tab1, p_tab2 = st.tabs(["🟢 Open Ports", "🔴 Closed / Blocked"])
-            with p_tab1:
-                if open_ports:
-                    for item in open_ports: st.error(f"🔓 **Port {item['port']}** is OPEN -> Running `{item['service']}`")
-                else: st.success("Excellent: No open core communication ports exposed directly.")
-            with p_tab2:
-                for item in closed_ports: st.text(f"🔒 Port {item['port']} ({item['service']}) - Closed / Safe.")
-            
-            st.markdown("---")
-            st.markdown("💡 **Result Intel:** Exposed open entry points represent listening listeners. Unused ports should remain CLOSED or hidden behind firewall protocols to block lateral movement threats.")
-            
-            report_text = f"--- INFRASTRUCTURE PORT SCAN REPORT ---\nTarget Host: {clean_host}\nTime: {datetime.now()}\n\n"
-            for item in open_ports: report_text += f"Port {item['port']} ({item['service']}): OPEN\n"
-            st.download_button("📥 Download Network Audit Report", data=report_text, file_name=f"port_audit_{clean_host}.txt", key="m3_download_report_btn")
+            st.session_state["m3_results"] = {"open": open_ports, "closed": closed_ports, "clean_host": clean_host}
         else:
             st.error("Please enter a valid target hostname!")
+
+    if st.session_state["m3_results"]:
+        res = st.session_state["m3_results"]
+        p_tab1, p_tab2 = st.tabs(["🟢 Open Ports", "🔴 Closed / Blocked"])
+        with p_tab1:
+            if res["open"]:
+                for item in res["open"]: st.error(f"🔓 **Port {item['port']}** is OPEN -> Running `{item['service']}`")
+            else: st.success("Excellent: No open core communication ports exposed directly.")
+        with p_tab2:
+            for item in res["closed"]: st.text(f"🔒 Port {item['port']} ({item['service']}) - Closed / Safe.")
+        
+        st.markdown("---")
+        st.markdown("💡 **Result Intel:** Exposed open entry points represent listening listeners. Unused ports should remain CLOSED or hidden behind firewall protocols to block lateral movement threats.")
+        report_text = f"--- INFRASTRUCTURE PORT SCAN REPORT ---\nTarget Host: {res['clean_host']}\nTime: {datetime.now()}\n\n"
+        for item in res["open"]: report_text += f"Port {item['port']} ({item['service']}): OPEN\n"
+        st.download_button("📥 Download Network Audit Report", data=report_text, file_name=f"port_audit_{res['clean_host']}.txt", key="m3_download_report_btn")
 
 # =========================================================================
 # MODULE 4: DNS & SUBDOMAIN MAPPER
@@ -294,7 +342,10 @@ elif module_choice == "🛰️ DNS & Subdomain Mapper":
     st.title("🛰️ DNS & Subdomain Mapper")
     st.markdown("> 📌 **Quick Intel:** Enumerates common host prefix vectors to locate active corporate sub-assets and microservices.")
 
-    target_domain = st.text_input("🌐 Enter Base Domain Name:", placeholder="e.g., google.com (Use root domains for accurate maps)", key="m4_domain_input")
+    if "m4_results" not in st.session_state:
+        st.session_state["m4_results"] = None
+
+    target_domain = st.text_input("🌐 Enter Base Domain Name:", placeholder="e.g., google.com", key="m4_domain_input")
     subdomain_wordlist = ["www", "mail", "ftp", "admin", "dev", "staging", "api", "blog", "secure", "vpn"]
 
     def resolve_subdomain(base_domain, sub):
@@ -305,7 +356,17 @@ elif module_choice == "🛰️ DNS & Subdomain Mapper":
         except socket.gaierror:
             return {"subdomain": full_target, "status": "DEAD"}
 
-    if st.button("🚀 Mapping Target Subdomains", key="m4_dns_mapping_btn"):
+    m4_col_b1, m4_col_b2 = st.columns(2)
+    with m4_col_b1:
+        map_clicked = st.button("🚀 Mapping Target Subdomains", key="m4_dns_mapping_btn", use_container_width=True)
+    with m4_col_b2:
+        clear_clicked = st.button("🗑️ Clear Results", key="m4_clear_btn", use_container_width=True)
+
+    if clear_clicked:
+        st.session_state["m4_results"] = None
+        st.rerun()
+
+    if map_clicked:
         if target_domain.strip():
             clean_domain = clean_to_root_domain(target_domain)
             st.info(f"⚙️ Target Mapping optimized on Root Asset: `{clean_domain}`")
@@ -321,23 +382,25 @@ elif module_choice == "🛰️ DNS & Subdomain Mapper":
                         res = future.result()
                         if res["status"] == "ALIVE": alive_subs.append(res)
                         else: dead_subs.append(res)
-
-            d_tab1, d_tab2 = st.tabs(["🟢 Active Subdomains", "🔴 Non-Responsive"])
-            with d_tab1:
-                if alive_subs:
-                    for item in alive_subs: st.markdown(f"🌐 **{item['subdomain']}** -> IP: `{item['ip']}`")
-                else: st.warning("No standard organizational subdomains resolved for this scope.")
-            with d_tab2:
-                for item in dead_subs: st.caption(f"❌ {item['subdomain']}")
-            
-            st.markdown("---")
-            st.markdown("💡 **Result Intel:** Discovering active subdomains maps out an entity's internal attack surface, unmasking hidden staging boxes or API entry points.")
-            
-            dns_report = f"DNS Subdomain Map for Root Scope: {clean_domain}\n\n[Active Records]\n"
-            for item in alive_subs: dns_report += f"{item['subdomain']} -> {item['ip']}\n"
-            st.download_button("📥 Download DNS Map Report", data=dns_report, file_name=f"dns_map_{clean_domain}.txt", key="m4_download_report_btn")
+            st.session_state["m4_results"] = {"alive": alive_subs, "dead": dead_subs, "clean_domain": clean_domain}
         else:
             st.error("Please supply a valid domain name!")
+
+    if st.session_state["m4_results"]:
+        res = st.session_state["m4_results"]
+        d_tab1, d_tab2 = st.tabs(["🟢 Active Subdomains", "🔴 Non-Responsive"])
+        with d_tab1:
+            if res["alive"]:
+                for item in res["alive"]: st.markdown(f"🌐 **{item['subdomain']}** -> IP: `{item['ip']}`")
+            else: st.warning("No standard organizational subdomains resolved for this scope.")
+        with d_tab2:
+            for item in res["dead"]: st.caption(f"❌ {item['subdomain']}")
+        
+        st.markdown("---")
+        st.markdown("💡 **Result Intel:** Discovering active subdomains maps out an entity's internal attack surface, unmasking hidden staging boxes or API entry points.")
+        dns_report = f"DNS Subdomain Map for Root Scope: {res['clean_domain']}\n\n[Active Records]\n"
+        for item in res["alive"]: dns_report += f"{item['subdomain']} -> {item['ip']}\n"
+        st.download_button("📥 Download DNS Map Report", data=dns_report, file_name=f"dns_map_{res['clean_domain']}.txt", key="m4_download_report_btn")
 
 # =========================================================================
 # MODULE 5: HTTP HEADER & SECURITY AUDITOR
@@ -346,9 +409,22 @@ elif module_choice == "🧠 HTTP Header & Security Auditor":
     st.title("🧠 HTTP Header & Security Auditor")
     st.markdown("> 📌 **Quick Intel:** Extracts server framework banners and audits missing security policy configurations (CSP, HSTS, X-Frame).")
 
+    if "m5_results" not in st.session_state:
+        st.session_state["m5_results"] = None
+
     target_url = st.text_input("🔗 Enter Target Website URL:", placeholder="e.g., https://google.com", key="m5_url_input")
 
-    if st.button("🛡️ Audit Web Security Headers", key="m5_header_audit_btn"):
+    m5_col_b1, m5_col_b2 = st.columns(2)
+    with m5_col_b1:
+        audit_clicked = st.button("🛡️ Audit Web Security Headers", key="m5_header_audit_btn", use_container_width=True)
+    with m5_col_b2:
+        clear_clicked = st.button("🗑️ Clear Results", key="m5_clear_btn", use_container_width=True)
+
+    if clear_clicked:
+        st.session_state["m5_results"] = None
+        st.rerun()
+
+    if audit_clicked:
         if target_url.strip():
             clean_host = clean_to_pure_hostname(target_url)
             url = "https://" + clean_host
@@ -360,31 +436,34 @@ elif module_choice == "🧠 HTTP Header & Security Auditor":
                     browser_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
                     response = requests.get(url, timeout=6, headers=browser_headers, allow_redirects=True)
                 
-                headers = response.headers
-                st.success("🎯 Metatag connection signatures cataloged!")
-
-                security_checks = {
-                    "Strict-Transport-Security": "Forces secure HTTPS tunnels.",
-                    "Content-Security-Policy": "Mitigates XSS injections.",
-                    "X-Frame-Options": "Defends against Clickjacking structures.",
-                    "X-Content-Type-Options": "Blocks unauthorized MIME type sniffing."
-                }
-
-                audit_log = f"HTTP Security Audit Summary for {url}\nEvaluated at: {datetime.now()}\n\n"
-                for key, description in security_checks.items():
-                    matched = next((k for k in headers if k.lower() == key.lower()), None)
-                    if matched: 
-                        st.success(f"🟢 **{key}** is ACTIVE!\n* Value: `{headers[matched]}`")
-                        audit_log += f"[OK] {key}: {headers[matched]}\n"
-                    else: 
-                        st.error(f"🔴 **{key}** is MISSING!\n* Impact: {description}")
-                        audit_log += f"[VULNERABILITY] {key} is absent -> {description}\n"
-                
-                st.markdown("---")
-                st.markdown("💡 **Result Intel:** Missing HTTP security policy headers leave web browsers unprotected against common automated client-side injection vectors.")
-                st.download_button("📥 Download Security Header Audit Log", data=audit_log, file_name=f"header_audit_{clean_host}.txt", key="m5_download_report_btn")
+                st.session_state["m5_results"] = {"headers": dict(response.headers), "url": url, "clean_host": clean_host}
             except Exception as e:
                 st.error(f"Web server pipeline rejected query: {e}")
+        else:
+            st.error("Please enter a target website URL!")
+
+    if st.session_state["m5_results"]:
+        res = st.session_state["m5_results"]
+        st.success("🎯 Metatag connection signatures cataloged!")
+        security_checks = {
+            "Strict-Transport-Security": "Forces secure HTTPS tunnels.",
+            "Content-Security-Policy": "Mitigates XSS injections.",
+            "X-Frame-Options": "Defends against Clickjacking structures.",
+            "X-Content-Type-Options": "Blocks unauthorized MIME type sniffing."
+        }
+        audit_log = f"HTTP Security Audit Summary for {res['url']}\nEvaluated at: {datetime.now()}\n\n"
+        for key, description in security_checks.items():
+            matched = next((k for k in res["headers"] if k.lower() == key.lower()), None)
+            if matched: 
+                st.success(f"🟢 **{key}** is ACTIVE!\n* Value: `{res['headers'][matched]}`")
+                audit_log += f"[OK] {key}: {res['headers'][matched]}\n"
+            else: 
+                st.error(f"🔴 **{key}** is MISSING!\n* Impact: {description}")
+                audit_log += f"[VULNERABILITY] {key} is absent -> {description}\n"
+        
+        st.markdown("---")
+        st.markdown("💡 **Result Intel:** Missing HTTP security policy headers leave web browsers unprotected against common automated client-side injection vectors.")
+        st.download_button("📥 Download Security Header Audit Log", data=audit_log, file_name=f"header_audit_{res['clean_host']}.txt", key="m5_download_report_btn")
 
 # =========================================================================
 # MODULE 6: DOMAIN REGISTRY & WHOIS (RDAP)
@@ -393,9 +472,22 @@ elif module_choice == "📜 Domain Registry & Whois (RDAP)":
     st.title("📜 Domain Registry & Whois (RDAP)")
     st.markdown("> 📌 **Quick Intel:** Direct RDAP query mechanism to extract official registrar logs, registration dates, and expiry checkpoints.")
 
+    if "m6_results" not in st.session_state:
+        st.session_state["m6_results"] = None
+
     input_domain = st.text_input("📝 Enter Target Domain Name:", placeholder="e.g., netlify.app", key="m6_domain_input")
 
-    if st.button("🔍 Pull Registry Metadata", key="m6_rdap_pull_btn"):
+    m6_col_b1, m6_col_b2 = st.columns(2)
+    with m6_col_b1:
+        pull_clicked = st.button("🔍 Pull Registry Metadata", key="m6_rdap_pull_btn", use_container_width=True)
+    with m6_col_b2:
+        clear_clicked = st.button("🗑️ Clear Results", key="m6_clear_btn", use_container_width=True)
+
+    if clear_clicked:
+        st.session_state["m6_results"] = None
+        st.rerun()
+
+    if pull_clicked:
         if input_domain.strip():
             root_domain = clean_to_root_domain(input_domain)
             st.info(f"⚙️ Target auto-cleaned down to Registry Root Domain: `{root_domain}`")
@@ -409,30 +501,29 @@ elif module_choice == "📜 Domain Registry & Whois (RDAP)":
                     response = requests.get(rdap_endpoint, timeout=10)
                 
                 if response.status_code == 200:
-                    data = response.json()
-                    
-                    creation_date, expiration_date = "Hidden/Unlisted", "Hidden/Unlisted"
-                    for event in data.get("events", []):
-                        if event.get("eventAction") == "registration": creation_date = event.get("eventDate", "").split("T")[0]
-                        elif event.get("eventAction") == "expiration": expiration_date = event.get("eventDate", "").split("T")[0]
-
-                    col1, col2 = st.columns(2)
-                    with col1: st.info(f"🌐 **Base Domain:** `{root_domain}`\n\n📅 **Created On:** `{creation_date}`")
-                    with col2: st.warning(f"⏳ **Expires On:** `{expiration_date}`")
-                    
-                    st.markdown("---")
-                    st.markdown("💡 **Result Intel:** Official registry databases map root asset lifecycles. Subdomains (like *.netlify.app) do not have independent registry papers because they belong under the main provider domain.")
-                    
-                    rdap_report = f"RDAP WHOIS Database Dump:\nRoot Asset Name: {root_domain}\nCreated on: {creation_date}\nExpires on: {expiration_date}"
-                    st.download_button("📥 Download Official Registry Logs", data=rdap_report, file_name=f"whois_report_{root_domain}.txt", key="m6_download_report_btn")
+                    st.session_state["m6_results"] = {"data": response.json(), "root_domain": root_domain}
                 else:
                     st.error(f"RDAP root registrar missing target response (Code: {response.status_code}). Base root domain verification required.")
-            except requests.exceptions.Timeout:
-                st.error("🚨 Public RDAP registry gatekeeper timed out. Network queues are congested. Try again in a few moments.")
             except Exception as e:
                 st.error(f"Registry connection pipeline error: {e}")
         else:
             st.error("Please provide a valid domain string!")
+
+    if st.session_state["m6_results"]:
+        res = st.session_state["m6_results"]
+        creation_date, expiration_date = "Hidden/Unlisted", "Hidden/Unlisted"
+        for event in res["data"].get("events", []):
+            if event.get("eventAction") == "registration": creation_date = event.get("eventDate", "").split("T")[0]
+            elif event.get("eventAction") == "expiration": expiration_date = event.get("eventDate", "").split("T")[0]
+
+        col1, col2 = st.columns(2)
+        with col1: st.info(f"🌐 **Base Domain:** `{res['root_domain']}`\n\n📅 **Created On:** `{creation_date}`")
+        with col2: st.warning(f"⏳ **Expires On:** `{expiration_date}`")
+        
+        st.markdown("---")
+        st.markdown("💡 **Result Intel:** Official registry databases map root asset lifecycles.")
+        rdap_report = f"RDAP WHOIS Database Dump:\nRoot Asset Name: {res['root_domain']}\nCreated on: {creation_date}\nExpires on: {expiration_date}"
+        st.download_button("📥 Download Official Registry Logs", data=rdap_report, file_name=f"whois_report_{res['root_domain']}.txt", key="m6_download_report_btn")
 
 # =========================================================================
 # MODULE 7: SSL/TLS CRYPTOGRAPHIC INSPECTOR
@@ -441,12 +532,24 @@ elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
     st.title("🔒 SSL/TLS Cryptographic Inspector")
     st.markdown("> 📌 **Quick Intel:** Connects directly over port 443 to parse certificate validity cycles and validating authorities.")
 
-    ssl_domain = st.text_input("🛡️ Enter Domain Name for SSL Handshake:", placeholder="e.g., free-gst-invoice.netlify.app", key="m7_ssl_input")
+    if "m7_results" not in st.session_state:
+        st.session_state["m7_results"] = None
 
-    if st.button("🔒 Trigger Cryptographic Verification", key="m7_ssl_verify_btn"):
+    ssl_domain = st.text_input("🛡️ Enter Domain Name for SSL Handshake:", placeholder="e.g., netlify.app", key="m7_ssl_input")
+
+    m7_col_b1, m7_col_b2 = st.columns(2)
+    with m7_col_b1:
+        verify_clicked = st.button("🔒 Trigger Cryptographic Verification", key="m7_ssl_verify_btn", use_container_width=True)
+    with m7_col_b2:
+        clear_clicked = st.button("🗑️ Clear Results", key="m7_clear_btn", use_container_width=True)
+
+    if clear_clicked:
+        st.session_state["m7_results"] = None
+        st.rerun()
+
+    if verify_clicked:
         if ssl_domain.strip():
             clean_ssl = clean_to_pure_hostname(ssl_domain)
-            
             if f"SSL: {clean_ssl}" not in st.session_state["scan_history"]:
                 st.session_state["scan_history"].append(f"SSL: {clean_ssl}")
 
@@ -454,59 +557,41 @@ elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
                 try:
                     status_block.write(f"🔌 Building TCP Socket channel onto `{clean_ssl}:443`...")
                     sock = socket.create_connection((clean_ssl, 443), timeout=6)
-                    
-                    status_block.write("🔒 Preparing security engine configuration with modern SNI/ALPN context blocks...")
                     ctx = ssl.create_default_context()
                     ctx.set_alpn_protocols(['http/1.1', 'h2'])
-                    
-                    status_block.write("🤝 Negotiating secure cryptographic wrapper keys...")
                     ssock = ctx.wrap_socket(sock, server_hostname=clean_ssl)
-                    
-                    status_block.write("📜 Parsing active certificate mapping records...")
                     cert = ssock.getpeercert()
                     ssock.close()
                     sock.close()
                     
                     if cert:
                         status_block.update(label="✅ Handshake Complete & Verified!", state="complete")
-                        
-                        issuer_map = {}
-                        try:
-                            for item in cert.get('issuer', []):
-                                for sub_tuple in item:
-                                    if len(sub_tuple) == 2:
-                                        issuer_map[sub_tuple[0]] = sub_tuple[1]
-                        except Exception:
-                            pass
-                                    
-                        issuer_org = issuer_map.get('organizationName', '')
-                        issuer_cn = issuer_map.get('commonName', '')
-                        
-                        if not issuer_org and not issuer_cn:
-                            issuer_string = str(cert.get('issuer', 'Unknown Issuer Certificate Authority'))
-                        else:
-                            issuer_string = f"{issuer_org} ({issuer_cn})".strip(" ()")
-                            
-                        valid_till = cert.get('notAfter', 'N/A')
-                        
-                        col1, col2 = st.columns(2)
-                        with col1: 
-                            st.success(f"🤝 **Verified Issuer CA:**\n\n`{issuer_string}`")
-                        with col2: 
-                            st.error(f"🚨 **Expiration Deadline:**\n\n`{valid_till}`")
-                            
-                        st.markdown("---")
-                        st.markdown("💡 **Result Intel:** Validates active encryption infrastructure keys. Expired keys trigger system browser blocks for incoming client traffic.")
-                        
-                        ssl_report = f"SSL/TLS Cert Audit for {clean_ssl}\nIssuer CA Signature: {issuer_string}\nExpiration Deadline: {valid_till}"
-                        st.download_button("📥 Download Cryptographic Audit Report", data=ssl_report, file_name=f"ssl_audit_{clean_ssl}.txt", key="m7_download_report_btn")
+                        st.session_state["m7_results"] = {"cert": cert, "clean_ssl": clean_ssl}
                     else:
-                        status_block.update(label="⚠️ Handshake complete, but cert data payload is unreadable.", state="error")
-                        st.warning("Handshake complete, but verification payload was unreadable.")
-                        
+                        status_block.update(label="⚠️ Cert data payload is unreadable.", state="error")
                 except Exception as e:
                     status_block.update(label="❌ Handshake Interrupted / Aborted!", state="error")
                     st.error(f"Secure handshake protocol aborted: {e}")
-                    st.info("💡 **Cyber Context Note:** Modern proxies (like local tunnels or invalid host inputs) might reject external raw TCP handshakes. Ensure the host is publicly addressable on Port 443.")
         else:
             st.error("Please insert a target host domain!")
+
+    if st.session_state["m7_results"]:
+        res = st.session_state["m7_results"]
+        issuer_map = {}
+        try:
+            for item in res["cert"].get('issuer', []):
+                for sub_tuple in item:
+                    if len(sub_tuple) == 2: issuer_map[sub_tuple[0]] = sub_tuple[1]
+        except Exception: pass
+                        
+        issuer_string = f"{issuer_map.get('organizationName', '')} ({issuer_map.get('commonName', '')})".strip(" ()")
+        if not issuer_string: issuer_string = str(res["cert"].get('issuer', 'Unknown Authority'))
+        valid_till = res["cert"].get('notAfter', 'N/A')
+        
+        col1, col2 = st.columns(2)
+        with col1: st.success(f"🤝 **Verified Issuer CA:**\n\n`{issuer_string}`")
+        with col2: st.error(f"🚨 **Expiration Deadline:**\n\n`{valid_till}`")
+        
+        st.markdown("---")
+        ssl_report = f"SSL/TLS Cert Audit for {res['clean_ssl']}\nIssuer CA Signature: {issuer_string}\nExpiration Deadline: {valid_till}"
+        st.download_button("📥 Download Cryptographic Audit Report", data=ssl_report, file_name=f"ssl_audit_{res['clean_ssl']}.txt", key="m7_download_report_btn")
