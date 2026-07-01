@@ -67,19 +67,66 @@ if st.session_state["scan_history"]:
 else:
     st.sidebar.info("No active logs registered.")
 
-# --- Module 1 के स्टार्टिंग में Session State इनिशियलाइज़ करें ---
-if "osint_results" not in st.session_state:
-    st.session_state["osint_results"] = None
-
+# =========================================================================
+# MODULE 1: USERNAME THREAT SCANNER
+# =========================================================================
 if module_choice == "👤 Username Threat Scanner":
     st.title("👤 Username Threat Scanner")
     st.markdown("> 📌 **Quick Intel:** Maps identical user handles across 18 major digital platforms in parallel.")
 
     target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., pankajvalvi")
 
-    # ... (बाकी websites dict और scan_single_site function सेम रहेगा) ...
+    websites = {
+        "GitHub": {"url": "https://github.com/{}", "redirect": True},
+        "GitLab": {"url": "https://gitlab.com/{}", "redirect": True},
+        "Dev.to": {"url": "https://dev.to/{}", "redirect": True},
+        "HackerRank": {"url": "https://www.hackerrank.com/profile/{}", "redirect": True},
+        "Medium": {"url": "https://medium.com/@{}", "redirect": False},
+        "Instagram": {"url": "https://www.instagram.com/{}/", "redirect": False},   
+        "X (Twitter)": {"url": "https://x.com/{}", "redirect": False},
+        "LinkedIn": {"url": "https://www.linkedin.com/in/{}", "redirect": False},
+        "Snapchat": {"url": "https://www.snapchat.com/add/{}", "redirect": True},    
+        "Pinterest": {"url": "https://www.pinterest.com/{}/", "redirect": True},     
+        "Twitch": {"url": "https://www.twitch.tv/{}", "redirect": True},
+        "Spotify": {"url": "https://open.spotify.com/user/{}", "redirect": True},
+        "SoundCloud": {"url": "https://soundcloud.com/{}", "redirect": True},
+        "Chess.com": {"url": "https://www.chess.com/member/{}", "redirect": True},
+        "Wikipedia": {"url": "https://en.wikipedia.org/wiki/User:{}", "redirect": True},
+        "Reddit": {"url": "https://www.reddit.com/user/{}.json", "redirect": True}, 
+        "Bio.link": {"url": "https://bio.link/{}", "redirect": True},
+        "Linktree": {"url": "https://linktr.ee/{}", "redirect": True}
+    }
 
-    if st.button("⚡ Execute Turbo Fast Scan"):
+    def scan_single_site(site_name, config, username):
+        target_url = config["url"].format(username)
+        current_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        try:
+            response = requests.get(target_url, headers=current_headers, timeout=5, allow_redirects=config["redirect"])
+            if response.status_code == 200:
+                if "reddit" in target_url and "error" in response.text:
+                    return {"status": "not_found", "site": site_name}
+                return {"status": "found", "site": site_name, "url": target_url}
+            elif response.status_code in [429, 999, 403]:
+                return {"status": "blocked", "site": site_name, "url": target_url}
+            return {"status": "not_found", "site": site_name}
+        except Exception:
+            return {"status": "not_found", "site": site_name}
+
+    # Session State इनिशियलाइज़ेशन
+    if "osint_results" not in st.session_state:
+        st.session_state["osint_results"] = None
+
+    # दोनों बटन्स को अगल-बगल रखने के लिए लेआउट (जो आपने पिछले स्क्रीनशॉट में बनाया था)
+    col_btn1, col_btn2 = st.columns([1, 1])
+    with col_btn1:
+        execute_scan = st.button("⚡ Execute Turbo Fast Scan")
+    with col_btn2:
+        if st.button("🗑️ Clear Results"):
+            st.session_state["osint_results"] = None
+            st.rerun()
+
+    # जब स्कैन बटन दबेगा, तब यह पूरा ब्लॉक अंदर ही एग्जीक्यूट होगा
+    if execute_scan:
         if target_user.strip():
             raw_input = target_user.lower().strip()
             if target_user.strip() not in st.session_state["scan_history"]:
@@ -88,6 +135,7 @@ if module_choice == "👤 Username Threat Scanner":
             username_variations = set([raw_input.replace(" ", ""), raw_input.replace(" ", "-"), raw_input.replace(" ", "_")])
             found_profiles, blocked_profiles = [], []
             
+            # 🟢 यहाँ ध्यान दें: scan_tasks अब पूरी तरह से इस block के अंदर है!
             scan_tasks = [(site, cfg, user) for user in username_variations for site, cfg in websites.items()]
             
             progress_bar = st.progress(0)
@@ -105,23 +153,24 @@ if module_choice == "👤 Username Threat Scanner":
                     res = future.result()
                     if res["status"] == "found": found_profiles.append((res["site"], res["url"]))
                     elif res["status"] == "blocked": blocked_profiles.append((res["site"], res["url"]))
+                    
+            status_text.success("🎯 Digital footprint mapping pipeline complete!")
             
-            # 🟢 बदलाव यहाँ है: रिज़ल्ट को session_state में सेव करें
+            # रिज़ल्ट्स को स्टेट में लॉक करें
             st.session_state["osint_results"] = {
                 "found": found_profiles,
                 "blocked": blocked_profiles,
                 "user": target_user
             }
-            status_text.success("🎯 Digital footprint mapping pipeline complete!")
         else:
             st.error("Please enter a target username!")
 
-    # 🟢 बटन के बाहर रिज़ल्ट्स को रेंडर करें ताकि क्लिक करने पर गायब न हों
+    # 🟢 रिज़ल्ट रेंडरिंग और डाउनलोड बटन (यह 'if execute_scan' ब्लॉक के बाहर आज़ाद रहेगा)
     if st.session_state["osint_results"] is not None:
         res_data = st.session_state["osint_results"]
         found_profiles = res_data["found"]
         blocked_profiles = res_data["blocked"]
-        target_user = res_data["user"]
+        current_target = res_data["user"]
 
         m_col1, m_col2 = st.columns(2)
         m_col1.metric("🟢 Live Active Accounts", f"{len(found_profiles)} Hits")
@@ -136,11 +185,10 @@ if module_choice == "👤 Username Threat Scanner":
         st.markdown("---")
         st.markdown("💡 **Result Intel:** Active hits confirm registered digital accounts with matching identity handles.")
         
-        report_text = f"--- SHERLOCKLITE OSINT SCAN REPORT ---\nTarget Username: {target_user}\nScan Time: {datetime.now()}\n\n[Active Hits]\n"
+        report_text = f"--- SHERLOCKLITE OSINT SCAN REPORT ---\nTarget Username: {current_target}\nScan Time: {datetime.now()}\n\n[Active Hits]\n"
         for site, url in sorted(found_profiles): report_text += f"- {site}: {url}\n"
         
-        # अब यह डाउनलोड बटन मक्खन की तरह काम करेगा!
-        st.download_button("📥 Download Encrypted OSINT Log Report", data=report_text, file_name=f"osint_report_{target_user}.txt")
+        st.download_button("📥 Download Encrypted OSINT Log Report", data=report_text, file_name=f"osint_report_{current_target}.txt")
 
 # --- Module 2 के स्टार्टिंग में Session State इनिशियलाइज़ करें ---
 if "ip_results" not in st.session_state:
