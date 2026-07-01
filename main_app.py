@@ -34,9 +34,19 @@ def clean_to_root_domain(input_str):
         return ".".join(parts[-2:])
     return hostname
 
-# Initialize Session State for Sidebar Logs
-if "scan_history" not in st.session_state:
-    st.session_state["scan_history"] = []
+# =========================================================================
+# GLOBAL SESSION STATE INITIALIZATION (सर्वप्रथम सुरक्षित शुरुआत)
+# =========================================================================
+session_vars = [
+    "scan_history", "osint_results", "ip_results", 
+    "m3_results", "m4_results", "m5_results", "m6_results", "m7_results"
+]
+for var in session_vars:
+    if var not in st.session_state:
+        if var == "scan_history":
+            st.session_state[var] = []
+        else:
+            st.session_state[var] = None
 
 # Sidebar Panel Layout
 st.sidebar.title("🔱 Sovereign Cyber Panel")
@@ -112,20 +122,14 @@ if module_choice == "👤 Username Threat Scanner":
         except Exception:
             return {"status": "not_found", "site": site_name}
 
-    # Session State इनिशियलाइज़ेशन
-    if "osint_results" not in st.session_state:
-        st.session_state["osint_results"] = None
-
-    # दोनों बटन्स को अगल-बगल रखने के लिए लेआउट (जो आपने पिछले स्क्रीनशॉट में बनाया था)
     col_btn1, col_btn2 = st.columns([1, 1])
     with col_btn1:
         execute_scan = st.button("⚡ Execute Turbo Fast Scan")
     with col_btn2:
-        if st.button("🗑️ Clear Results"):
+        if st.button("🗑️ Clear Results", key="clear_m1_btn"):
             st.session_state["osint_results"] = None
             st.rerun()
 
-    # जब स्कैन बटन दबेगा, तब यह पूरा ब्लॉक अंदर ही एग्जीक्यूट होगा
     if execute_scan:
         if target_user.strip():
             raw_input = target_user.lower().strip()
@@ -135,7 +139,6 @@ if module_choice == "👤 Username Threat Scanner":
             username_variations = set([raw_input.replace(" ", ""), raw_input.replace(" ", "-"), raw_input.replace(" ", "_")])
             found_profiles, blocked_profiles = [], []
             
-            # 🟢 यहाँ ध्यान दें: scan_tasks अब पूरी तरह से इस block के अंदर है!
             scan_tasks = [(site, cfg, user) for user in username_variations for site, cfg in websites.items()]
             
             progress_bar = st.progress(0)
@@ -156,7 +159,6 @@ if module_choice == "👤 Username Threat Scanner":
                     
             status_text.success("🎯 Digital footprint mapping pipeline complete!")
             
-            # रिज़ल्ट्स को स्टेट में लॉक करें
             st.session_state["osint_results"] = {
                 "found": found_profiles,
                 "blocked": blocked_profiles,
@@ -165,7 +167,6 @@ if module_choice == "👤 Username Threat Scanner":
         else:
             st.error("Please enter a target username!")
 
-    # 🟢 रिज़ल्ट रेंडरिंग और डाउनलोड बटन (यह 'if execute_scan' ब्लॉक के बाहर आज़ाद रहेगा)
     if st.session_state["osint_results"] is not None:
         res_data = st.session_state["osint_results"]
         found_profiles = res_data["found"]
@@ -188,12 +189,11 @@ if module_choice == "👤 Username Threat Scanner":
         report_text = f"--- SHERLOCKLITE OSINT SCAN REPORT ---\nTarget Username: {current_target}\nScan Time: {datetime.now()}\n\n[Active Hits]\n"
         for site, url in sorted(found_profiles): report_text += f"- {site}: {url}\n"
         
-        st.download_button("📥 Download Encrypted OSINT Log Report", data=report_text, file_name=f"osint_report_{current_target}.txt")
+        st.download_button("📥 Download Encrypted OSINT Log Report", data=report_text, file_name=f"osint_report_{current_target}.txt", key="download_m1_report")
 
-# --- Module 2 के स्टार्टिंग में Session State इनिशियलाइज़ करें ---
-if "ip_results" not in st.session_state:
-    st.session_state["ip_results"] = None
-
+# =========================================================================
+# MODULE 2: IP INTELLIGENCE TRACKER (बिना रुकावट एकदम अटूट)
+# =========================================================================
 elif module_choice == "🌐 IP Intelligence Tracker":
     st.title("🌐 IP Intelligence Tracker")
     st.markdown("> 📌 **Quick Intel:** Extracts geographical location, ISP data, ASN routes, and coordinates from any public IP or domain.")
@@ -218,7 +218,6 @@ elif module_choice == "🌐 IP Intelligence Tracker":
                         if f"IP: {target_ip}" not in st.session_state["scan_history"]:
                             st.session_state["scan_history"].append(f"IP: {target_ip}")
                         
-                        # 🟢 रिज़ल्ट को state में सेव करें
                         st.session_state["ip_results"] = {
                             "response": response,
                             "target_ip": target_ip,
@@ -232,7 +231,6 @@ elif module_choice == "🌐 IP Intelligence Tracker":
         else:
             st.error("Please provide an IP address or domain!")
 
-    # 🟢 रिज़ल्ट डिस्प्ले बटन के बाहर होगा
     if st.session_state["ip_results"] is not None:
         ip_data = st.session_state["ip_results"]
         resp = ip_data["response"]
@@ -250,7 +248,7 @@ elif module_choice == "🌐 IP Intelligence Tracker":
         
         st.markdown("---")
         report_data = f"IP Intelligence Audit:\nTarget Input: {ip_data['ip_input']}\nResolved IP: {ip_data['target_ip']}\nLocation: {resp.get('city')}, {resp.get('country')}\nISP: {resp.get('isp')}"
-        st.download_button("📥 Download IP Intelligence Log", data=report_data, file_name=f"ip_intel_{ip_data['target_ip']}.txt")
+        st.download_button("📥 Download IP Intelligence Log", data=report_data, file_name=f"ip_intel_{ip_data['target_ip']}.txt", key="download_m2_report")
 
 # =========================================================================
 # MODULE 3: TACTICAL PORT SCANNER
@@ -258,9 +256,6 @@ elif module_choice == "🌐 IP Intelligence Tracker":
 elif module_choice == "🛡️ Tactical Port Scanner":
     st.title("🛡️ Tactical Port Scanner")
     st.markdown("> 📌 **Quick Intel:** Probes critical ports to detect open communication channels and active service signatures.")
-
-    if "m3_results" not in st.session_state:
-        st.session_state["m3_results"] = None
 
     target_host = st.text_input("💻 Enter Target Domain / Host IP:", placeholder="e.g., scanme.nmap.org", key="m3_host_input")
 
@@ -330,9 +325,6 @@ elif module_choice == "🛰️ DNS & Subdomain Mapper":
     st.title("🛰️ DNS & Subdomain Mapper")
     st.markdown("> 📌 **Quick Intel:** Enumerates common host prefix vectors to locate active corporate sub-assets and microservices.")
 
-    if "m4_results" not in st.session_state:
-        st.session_state["m4_results"] = None
-
     target_domain = st.text_input("🌐 Enter Base Domain Name:", placeholder="e.g., google.com", key="m4_domain_input")
     subdomain_wordlist = ["www", "mail", "ftp", "admin", "dev", "staging", "api", "blog", "secure", "vpn"]
 
@@ -397,9 +389,6 @@ elif module_choice == "🧠 HTTP Header & Security Auditor":
     st.title("🧠 HTTP Header & Security Auditor")
     st.markdown("> 📌 **Quick Intel:** Extracts server framework banners and audits missing security policy configurations (CSP, HSTS, X-Frame).")
 
-    if "m5_results" not in st.session_state:
-        st.session_state["m5_results"] = None
-
     target_url = st.text_input("🔗 Enter Target Website URL:", placeholder="e.g., https://google.com", key="m5_url_input")
 
     m5_col_b1, m5_col_b2 = st.columns(2)
@@ -460,9 +449,6 @@ elif module_choice == "📜 Domain Registry & Whois (RDAP)":
     st.title("📜 Domain Registry & Whois (RDAP)")
     st.markdown("> 📌 **Quick Intel:** Direct RDAP query mechanism to extract official registrar logs, registration dates, and expiry checkpoints.")
 
-    if "m6_results" not in st.session_state:
-        st.session_state["m6_results"] = None
-
     input_domain = st.text_input("📝 Enter Target Domain Name:", placeholder="e.g., netlify.app", key="m6_domain_input")
 
     m6_col_b1, m6_col_b2 = st.columns(2)
@@ -519,9 +505,6 @@ elif module_choice == "📜 Domain Registry & Whois (RDAP)":
 elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
     st.title("🔒 SSL/TLS Cryptographic Inspector")
     st.markdown("> 📌 **Quick Intel:** Connects directly over port 443 to parse certificate validity cycles and validating authorities.")
-
-    if "m7_results" not in st.session_state:
-        st.session_state["m7_results"] = None
 
     ssl_domain = st.text_input("🛡️ Enter Domain Name for SSL Handshake:", placeholder="e.g., netlify.app", key="m7_ssl_input")
 
