@@ -57,7 +57,7 @@ module_choice = st.sidebar.radio(
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📜 System Intel Logs")
-if st.sidebar.button("🧹 Clear Logs"):
+if st.sidebar.button("🧹 Clear Logs", key="clear_logs_sidebar_btn"):
     st.session_state["scan_history"] = []
     st.sidebar.success("Logs cleared!")
 
@@ -74,7 +74,8 @@ if module_choice == "👤 Username Threat Scanner":
     st.title("👤 Username Threat Scanner")
     st.markdown("> 📌 **Quick Intel:** Maps identical user handles across 18 major digital platforms in parallel.")
 
-    target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., pankaj")
+    # Added unique key to prevent input cross-bleeding
+    target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., pankaj", key="m1_username_input")
 
     websites = {
         "GitHub": {"url": "https://github.com/{}", "redirect": True},
@@ -112,14 +113,14 @@ if module_choice == "👤 Username Threat Scanner":
         except Exception:
             return {"status": "not_found", "site": site_name}
 
-    # 🔥 EXTRA TURBO SCAN BUTTON (Perfect Indentation: 4 Spaces)
-    if st.button("⚡ Execute Turbo Fast Scan"):
+    # Added unique key for the button execution isolation
+    if st.button("⚡ Execute Turbo Fast Scan", key="m1_turbo_scan_btn"):
         if target_user.strip():
             raw_input = target_user.lower().strip().replace(" ", "")
             if target_user.strip() not in st.session_state["scan_history"]:
                 st.session_state["scan_history"].append(f"Turbo User: {target_user.strip()}")
             
-            # 🎯 AUTOMATIC SMART VARIATION ENGINE (Your requested examples connected)
+            # AUTOMATIC SMART VARIATION ENGINE (Connected as specified)
             username_variations = set([
                 raw_input,                 # pankaj
                 f"{raw_input}_ff",          # pankaj_ff
@@ -132,7 +133,6 @@ if module_choice == "👤 Username Threat Scanner":
             st.info(f"🔍 Generating patterns: {', '.join(username_variations)}")
             found_profiles, blocked_profiles = [], []
             
-            # Matrix mapping: multiply all variations with all 18 websites
             scan_tasks = [(site, cfg, user) for user in username_variations for site, cfg in websites.items()]
             
             progress_bar = st.progress(0)
@@ -177,7 +177,7 @@ if module_choice == "👤 Username Threat Scanner":
             
             report_text = f"--- SHERLOCKLITE OSINT SCAN REPORT ---\nTarget Base: {target_user}\nScan Time: {datetime.now()}\n\n[Active Hits]\n"
             for site, user, url in sorted(found_profiles): report_text += f"- {site} ({user}): {url}\n"
-            st.download_button("📥 Download Encrypted OSINT Log Report", data=report_text, file_name=f"osint_report_{target_user}.txt")
+            st.download_button("📥 Download Encrypted OSINT Log Report", data=report_text, file_name=f"osint_report_{target_user}.txt", key="m1_download_report_btn")
         else:
             st.error("Please enter a target username!")
 
@@ -188,9 +188,9 @@ elif module_choice == "🌐 IP Intelligence Tracker":
     st.title("🌐 IP Intelligence Tracker")
     st.markdown("> 📌 **Quick Intel:** Extracts geographical location, ISP data, ASN routes, and coordinates from any public IP or domain.")
 
-    ip_input = st.text_input("📡 Enter Target IP Address or Domain Name:", placeholder="e.g., 8.8.8.8 or netlify.app")
+    ip_input = st.text_input("📡 Enter Target IP Address or Domain Name:", placeholder="e.g., 8.8.8.8 or netlify.app", key="m2_ip_input")
 
-    if st.button("🔍 Trace IP Address"):
+    if st.button("🔍 Trace IP Address", key="m2_trace_ip_btn"):
         if ip_input.strip():
             with st.spinner("Resolving destination routes and querying global geolocation nodes..."):
                 try:
@@ -223,7 +223,7 @@ elif module_choice == "🌐 IP Intelligence Tracker":
                         st.markdown("💡 **Result Intel:** Geolocation values show routing checkpoints assigned by regional Internet Service Providers (ISPs), pinpointing network origin coordinates.")
                         
                         report_data = f"IP Intelligence Audit:\nTarget Input: {ip_input}\nResolved IP: {target_ip}\nLocation: {response.get('city')}, {response.get('country')}\nISP: {response.get('isp')}"
-                        st.download_button("📥 Download IP Intelligence Log", data=report_data, file_name=f"ip_intel_{target_ip}.txt")
+                        st.download_button("📥 Download IP Intelligence Log", data=report_data, file_name=f"ip_intel_{target_ip}.txt", key="m2_download_report_btn")
                     else:
                         st.error(f"🛑 Scan Failed: {response.get('message', 'Unknown Node Error')}")
                 except Exception as e:
@@ -238,7 +238,7 @@ elif module_choice == "🛡️ Tactical Port Scanner":
     st.title("🛡️ Tactical Port Scanner")
     st.markdown("> 📌 **Quick Intel:** Probes critical ports to detect open communication channels and active service signatures.")
 
-    target_host = st.text_input("💻 Enter Target Domain / Host IP:", placeholder="e.g., scanme.nmap.org")
+    target_host = st.text_input("💻 Enter Target Domain / Host IP:", placeholder="e.g., scanme.nmap.org", key="m3_host_input")
 
     common_ports = {
         21: "FTP", 22: "SSH", 23: "Telnet", 25: "SMTP", 53: "DNS", 80: "HTTP",
@@ -255,7 +255,7 @@ elif module_choice == "🛡️ Tactical Port Scanner":
         except Exception:
             return {"port": port, "status": "CLOSED", "service": service_name}
 
-    if st.button("⚡ Trigger Stealth Port Audit"):
+    if st.button("⚡ Trigger Stealth Port Audit", key="m3_port_audit_btn"):
         if target_host.strip():
             clean_host = clean_to_pure_hostname(target_host)
             if f"Ports: {clean_host}" not in st.session_state["scan_history"]:
@@ -283,7 +283,7 @@ elif module_choice == "🛡️ Tactical Port Scanner":
             
             report_text = f"--- INFRASTRUCTURE PORT SCAN REPORT ---\nTarget Host: {clean_host}\nTime: {datetime.now()}\n\n"
             for item in open_ports: report_text += f"Port {item['port']} ({item['service']}): OPEN\n"
-            st.download_button("📥 Download Network Audit Report", data=report_text, file_name=f"port_audit_{clean_host}.txt")
+            st.download_button("📥 Download Network Audit Report", data=report_text, file_name=f"port_audit_{clean_host}.txt", key="m3_download_report_btn")
         else:
             st.error("Please enter a valid target hostname!")
 
@@ -294,7 +294,7 @@ elif module_choice == "🛰️ DNS & Subdomain Mapper":
     st.title("🛰️ DNS & Subdomain Mapper")
     st.markdown("> 📌 **Quick Intel:** Enumerates common host prefix vectors to locate active corporate sub-assets and microservices.")
 
-    target_domain = st.text_input("🌐 Enter Base Domain Name:", placeholder="e.g., google.com (Use root domains for accurate maps)")
+    target_domain = st.text_input("🌐 Enter Base Domain Name:", placeholder="e.g., google.com (Use root domains for accurate maps)", key="m4_domain_input")
     subdomain_wordlist = ["www", "mail", "ftp", "admin", "dev", "staging", "api", "blog", "secure", "vpn"]
 
     def resolve_subdomain(base_domain, sub):
@@ -305,7 +305,7 @@ elif module_choice == "🛰️ DNS & Subdomain Mapper":
         except socket.gaierror:
             return {"subdomain": full_target, "status": "DEAD"}
 
-    if st.button("🚀 Mapping Target Subdomains"):
+    if st.button("🚀 Mapping Target Subdomains", key="m4_dns_mapping_btn"):
         if target_domain.strip():
             clean_domain = clean_to_root_domain(target_domain)
             st.info(f"⚙️ Target Mapping optimized on Root Asset: `{clean_domain}`")
@@ -335,7 +335,7 @@ elif module_choice == "🛰️ DNS & Subdomain Mapper":
             
             dns_report = f"DNS Subdomain Map for Root Scope: {clean_domain}\n\n[Active Records]\n"
             for item in alive_subs: dns_report += f"{item['subdomain']} -> {item['ip']}\n"
-            st.download_button("📥 Download DNS Map Report", data=dns_report, file_name=f"dns_map_{clean_domain}.txt")
+            st.download_button("📥 Download DNS Map Report", data=dns_report, file_name=f"dns_map_{clean_domain}.txt", key="m4_download_report_btn")
         else:
             st.error("Please supply a valid domain name!")
 
@@ -346,9 +346,9 @@ elif module_choice == "🧠 HTTP Header & Security Auditor":
     st.title("🧠 HTTP Header & Security Auditor")
     st.markdown("> 📌 **Quick Intel:** Extracts server framework banners and audits missing security policy configurations (CSP, HSTS, X-Frame).")
 
-    target_url = st.text_input("🔗 Enter Target Website URL:", placeholder="e.g., https://google.com")
+    target_url = st.text_input("🔗 Enter Target Website URL:", placeholder="e.g., https://google.com", key="m5_url_input")
 
-    if st.button("🛡️ Audit Web Security Headers"):
+    if st.button("🛡️ Audit Web Security Headers", key="m5_header_audit_btn"):
         if target_url.strip():
             clean_host = clean_to_pure_hostname(target_url)
             url = "https://" + clean_host
@@ -382,7 +382,7 @@ elif module_choice == "🧠 HTTP Header & Security Auditor":
                 
                 st.markdown("---")
                 st.markdown("💡 **Result Intel:** Missing HTTP security policy headers leave web browsers unprotected against common automated client-side injection vectors.")
-                st.download_button("📥 Download Security Header Audit Log", data=audit_log, file_name=f"header_audit_{clean_host}.txt")
+                st.download_button("📥 Download Security Header Audit Log", data=audit_log, file_name=f"header_audit_{clean_host}.txt", key="m5_download_report_btn")
             except Exception as e:
                 st.error(f"Web server pipeline rejected query: {e}")
 
@@ -393,9 +393,9 @@ elif module_choice == "📜 Domain Registry & Whois (RDAP)":
     st.title("📜 Domain Registry & Whois (RDAP)")
     st.markdown("> 📌 **Quick Intel:** Direct RDAP query mechanism to extract official registrar logs, registration dates, and expiry checkpoints.")
 
-    input_domain = st.text_input("📝 Enter Target Domain Name:", placeholder="e.g., netlify.app")
+    input_domain = st.text_input("📝 Enter Target Domain Name:", placeholder="e.g., netlify.app", key="m6_domain_input")
 
-    if st.button("🔍 Pull Registry Metadata"):
+    if st.button("🔍 Pull Registry Metadata", key="m6_rdap_pull_btn"):
         if input_domain.strip():
             root_domain = clean_to_root_domain(input_domain)
             st.info(f"⚙️ Target auto-cleaned down to Registry Root Domain: `{root_domain}`")
@@ -424,7 +424,7 @@ elif module_choice == "📜 Domain Registry & Whois (RDAP)":
                     st.markdown("💡 **Result Intel:** Official registry databases map root asset lifecycles. Subdomains (like *.netlify.app) do not have independent registry papers because they belong under the main provider domain.")
                     
                     rdap_report = f"RDAP WHOIS Database Dump:\nRoot Asset Name: {root_domain}\nCreated on: {creation_date}\nExpires on: {expiration_date}"
-                    st.download_button("📥 Download Official Registry Logs", data=rdap_report, file_name=f"whois_report_{root_domain}.txt")
+                    st.download_button("📥 Download Official Registry Logs", data=rdap_report, file_name=f"whois_report_{root_domain}.txt", key="m6_download_report_btn")
                 else:
                     st.error(f"RDAP root registrar missing target response (Code: {response.status_code}). Base root domain verification required.")
             except requests.exceptions.Timeout:
@@ -441,9 +441,9 @@ elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
     st.title("🔒 SSL/TLS Cryptographic Inspector")
     st.markdown("> 📌 **Quick Intel:** Connects directly over port 443 to parse certificate validity cycles and validating authorities.")
 
-    ssl_domain = st.text_input("🛡️ Enter Domain Name for SSL Handshake:", placeholder="e.g., free-gst-invoice.netlify.app")
+    ssl_domain = st.text_input("🛡️ Enter Domain Name for SSL Handshake:", placeholder="e.g., free-gst-invoice.netlify.app", key="m7_ssl_input")
 
-    if st.button("🔒 Trigger Cryptographic Verification"):
+    if st.button("🔒 Trigger Cryptographic Verification", key="m7_ssl_verify_btn"):
         if ssl_domain.strip():
             clean_ssl = clean_to_pure_hostname(ssl_domain)
             
@@ -499,7 +499,7 @@ elif module_choice == "🔒 SSL/TLS Cryptographic Inspector":
                         st.markdown("💡 **Result Intel:** Validates active encryption infrastructure keys. Expired keys trigger system browser blocks for incoming client traffic.")
                         
                         ssl_report = f"SSL/TLS Cert Audit for {clean_ssl}\nIssuer CA Signature: {issuer_string}\nExpiration Deadline: {valid_till}"
-                        st.download_button("📥 Download Cryptographic Audit Report", data=ssl_report, file_name=f"ssl_audit_{clean_ssl}.txt")
+                        st.download_button("📥 Download Cryptographic Audit Report", data=ssl_report, file_name=f"ssl_audit_{clean_ssl}.txt", key="m7_download_report_btn")
                     else:
                         status_block.update(label="⚠️ Handshake complete, but cert data payload is unreadable.", state="error")
                         st.warning("Handshake complete, but verification payload was unreadable.")
