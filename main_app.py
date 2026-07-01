@@ -77,6 +77,7 @@ if module_choice == "👤 Username Threat Scanner":
     target_user = st.text_input("🎯 Enter Target Username / Name:", placeholder="e.g., pankajvalvi")
 
     websites = {
+        "instagram: {"url": "https://instagram.com/{}": True},
         "GitHub": {"url": "https://github.com/{}", "redirect": True},
         "GitLab": {"url": "https://gitlab.com/{}", "redirect": True},
         "Dev.to": {"url": "https://dev.to/{}", "redirect": True},
